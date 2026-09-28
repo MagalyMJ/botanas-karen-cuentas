@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Cuentas",
-  description: "Administración de clientes, préstamos y cobros",
+  description: "Contactos, notas y cobros de Botanas Karen",
   appleWebApp: { capable: true, title: "Cuentas", statusBarStyle: "default" },
   robots: { index: false, follow: false },
 };

@@ -5,13 +5,13 @@ import { redirect } from "next/navigation";
 import { eq, sql } from "drizzle-orm";
 import { AuthError } from "next-auth";
 import { db } from "@/db";
-import { clientes, prestamos } from "@/db/schema";
+import { contactos, notas } from "@/db/schema";
 import { requireUser, signIn, signOut } from "@/auth";
 import {
-  clienteSchema,
+  contactoSchema,
   erroresDeCampo,
   pagoSchema,
-  prestamoSchema,
+  notaSchema,
   type FormState,
 } from "@/lib/validaciones";
 import { formatoMoneda } from "@/lib/format";
@@ -33,49 +33,50 @@ export async function logout() {
   await signOut({ redirectTo: "/login" });
 }
 
-export async function crearCliente(_prev: FormState, formData: FormData): Promise<FormState> {
+export async function crearContacto(_prev: FormState, formData: FormData): Promise<FormState> {
   await requireUser();
-  const parsed = clienteSchema.safeParse({
+  const parsed = contactoSchema.safeParse({
     nombre: formData.get("nombre"),
+    tipo: formData.get("tipo"),
     telefono: formData.get("telefono") ?? "",
   });
   if (!parsed.success) return erroresDeCampo(parsed.error);
 
-  const [cliente] = await db.insert(clientes).values(parsed.data).returning({ id: clientes.id });
-  revalidatePath("/clientes");
-  redirect(`/clientes/${cliente.id}`);
+  const [contacto] = await db.insert(contactos).values(parsed.data).returning({ id: contactos.id });
+  revalidatePath("/contactos");
+  redirect(`/contactos/${contacto.id}`);
 }
 
-export async function crearPrestamo(
-  clienteId: number,
+export async function crearNota(
+  contactoId: number,
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
   await requireUser();
-  const parsed = prestamoSchema.safeParse({
+  const parsed = notaSchema.safeParse({
     tipo: formData.get("tipo"),
     montoOriginal: formData.get("montoOriginal"),
     fechaInicio: formData.get("fechaInicio"),
   });
   if (!parsed.success) return erroresDeCampo(parsed.error);
 
-  const [prestamo] = await db
-    .insert(prestamos)
+  const [nota] = await db
+    .insert(notas)
     .values({
-      clienteId,
+      contactoId,
       tipo: parsed.data.tipo,
       montoOriginal: parsed.data.montoOriginal,
       saldoPendiente: parsed.data.montoOriginal,
       fechaInicio: parsed.data.fechaInicio,
     })
-    .returning({ id: prestamos.id });
+    .returning({ id: notas.id });
 
   revalidatePath("/", "layout");
-  redirect(`/prestamos/${prestamo.id}`);
+  redirect(`/notas/${nota.id}`);
 }
 
 export async function registrarPago(
-  prestamoId: number,
+  notaId: number,
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
@@ -83,29 +84,29 @@ export async function registrarPago(
   const parsed = pagoSchema.safeParse({
     montoPagado: formData.get("montoPagado"),
     fechaPago: formData.get("fechaPago"),
-    notas: formData.get("notas") ?? "",
+    comentario: formData.get("comentario") ?? "",
   });
   if (!parsed.success) return erroresDeCampo(parsed.error);
 
-  const { montoPagado, fechaPago, notas } = parsed.data;
+  const { montoPagado, fechaPago, comentario } = parsed.data;
   const monto = montoPagado.toFixed(2);
 
   // Una sola sentencia SQL = atómica: descuenta el saldo, actualiza el estado e inserta
   // el pago. El UPDATE bloquea la fila, así que pagos simultáneos se aplican en serie.
-  // Solo aplica si el préstamo está activo y el pago no excede el saldo.
+  // Solo aplica si la nota está activa y el pago no excede el saldo.
   const result = await db.execute<{ saldo_pendiente: string; estado: string }>(sql`
     WITH upd AS (
-      UPDATE prestamos
+      UPDATE notas
       SET saldo_pendiente = saldo_pendiente - ${monto}::numeric,
           estado = CASE
-            WHEN saldo_pendiente - ${monto}::numeric = 0 THEN 'pagado'::estado_prestamo
-            ELSE 'activo'::estado_prestamo
+            WHEN saldo_pendiente - ${monto}::numeric = 0 THEN 'pagado'::estado_nota
+            ELSE 'activo'::estado_nota
           END
-      WHERE id = ${prestamoId} AND estado = 'activo' AND saldo_pendiente >= ${monto}::numeric
+      WHERE id = ${notaId} AND estado = 'activo' AND saldo_pendiente >= ${monto}::numeric
       RETURNING id, saldo_pendiente, estado
     ), ins AS (
-      INSERT INTO pagos (prestamo_id, monto_pagado, fecha_pago, notas)
-      SELECT id, ${monto}::numeric, ${fechaPago}::date, ${notas} FROM upd
+      INSERT INTO pagos (nota_id, monto_pagado, fecha_pago, comentario)
+      SELECT id, ${monto}::numeric, ${fechaPago.toISOString()}::timestamptz, ${comentario} FROM upd
       RETURNING id
     )
     SELECT upd.saldo_pendiente, upd.estado FROM upd, ins
@@ -113,9 +114,9 @@ export async function registrarPago(
 
   if (result.rows.length === 0) {
     const [actual] = await db
-      .select({ estado: prestamos.estado, saldo: prestamos.saldoPendiente })
-      .from(prestamos)
-      .where(eq(prestamos.id, prestamoId));
+      .select({ estado: notas.estado, saldo: notas.saldoPendiente })
+      .from(notas)
+      .where(eq(notas.id, notaId));
     if (actual?.estado === "activo") {
       return {
         fieldErrors: {

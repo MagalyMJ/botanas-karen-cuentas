@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Cuentas",
     short_name: "Cuentas",
-    description: "Administración de clientes, préstamos y cobros",
+    description: "Contactos, notas y cobros de Botanas Karen",
     start_url: "/",
     display: "standalone",
     background_color: "#ffffff",

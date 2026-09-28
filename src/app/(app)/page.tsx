@@ -1,58 +1,99 @@
 import Link from "next/link";
-import { getPagosRecientes, getResumen } from "@/lib/queries";
+import { ChevronRightIcon } from "lucide-react";
+import { getContactos, getPagosRecientes, getResumen } from "@/lib/queries";
 import { formatoFecha, formatoMoneda } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
 import { Balance, descripcionBalance } from "@/components/balance";
+import { TipoContactoBadge } from "@/components/tipo-contacto";
+
+const MAX_TARJETAS = 9;
 
 export default async function InicioPage() {
-  const [resumen, pagos] = await Promise.all([getResumen(), getPagosRecientes()]);
-
-  const stats = [
-    { label: "Me deben", value: formatoMoneda(resumen.porCobrar) },
-    { label: "Debo", value: formatoMoneda(resumen.porPagar) },
-    { label: "Cobrado este mes", value: formatoMoneda(resumen.cobradoMes) },
-    { label: "Notas activas", value: resumen.prestamosActivos },
-  ];
+  const [resumen, conSaldo, pagos] = await Promise.all([
+    getResumen(),
+    getContactos({ soloConSaldo: true, limite: MAX_TARJETAS }),
+    getPagosRecientes(5),
+  ]);
   const neto = resumen.porCobrar - resumen.porPagar;
+
 
   return (
     <>
       <PageHeader title="Inicio" />
-      <Card className="mb-3">
+      <Card>
         <CardContent>
-          <p className="text-xs text-muted-foreground">Balance neto ({descripcionBalance(neto).toLowerCase()})</p>
+          <p className="text-xs text-muted-foreground">
+            Balance neto{neto !== 0 && (neto > 0 ? " · a tu favor" : " · en contra")}
+          </p>
           <Balance valor={neto} className="mt-1 block text-3xl font-semibold" />
+          <dl className="mt-3 grid grid-cols-3 gap-2 border-t pt-3 text-xs">
+            <div>
+              <dt className="text-muted-foreground">Me deben</dt>
+              <dd className="font-medium tabular-nums">{formatoMoneda(resumen.porCobrar)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Debo</dt>
+              <dd className="font-medium tabular-nums">{formatoMoneda(resumen.porPagar)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Cobrado este mes</dt>
+              <dd className="font-medium tabular-nums">{formatoMoneda(resumen.cobradoMes)}</dd>
+            </div>
+          </dl>
         </CardContent>
       </Card>
-      <div className="grid grid-cols-2 gap-3">
-        {stats.map((s) => (
-          <Card key={s.label} size="sm">
-            <CardContent>
-              <p className="text-xs text-muted-foreground">{s.label}</p>
-              <p className="mt-1 text-xl font-semibold tabular-nums">{s.value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Pagos recientes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {pagos.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aún no hay pagos registrados.</p>
-          ) : (
+      {conSaldo.length === 0 ? (
+        <p className="py-8 text-center text-sm text-muted-foreground">
+          Nadie te debe ni le debes a nadie. 🎉
+        </p>
+      ) : (
+        <section className="mt-6">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="font-semibold">Saldos pendientes</h2>
+            <Link
+              href="/contactos"
+              className="flex items-center text-sm text-muted-foreground hover:text-foreground"
+            >
+              Ver todos
+              <ChevronRightIcon className="size-4" />
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            {conSaldo.map((c) => (
+              <Link key={c.id} href={`/contactos/${c.id}`}>
+                <Card size="sm" className="h-full transition-colors hover:bg-muted/50">
+                  <CardContent className="grid gap-1">
+                    <TipoContactoBadge tipo={c.tipo} />
+                    <p className="truncate font-medium">{c.nombre}</p>
+                    <div>
+                      <p className="text-xs text-muted-foreground">{descripcionBalance(c.balance)}</p>
+                      <Balance valor={c.balance} sinSigno className="block text-lg font-semibold" />
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {pagos.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Pagos recientes</CardTitle>
+          </CardHeader>
+          <CardContent>
             <ul className="divide-y">
               {pagos.map((p) => (
                 <li key={p.id}>
                   <Link
-                    href={`/prestamos/${p.prestamoId}`}
+                    href={`/notas/${p.notaId}`}
                     className="flex items-center justify-between gap-3 py-3"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-medium">{p.clienteNombre}</p>
+                      <p className="truncate font-medium">{p.contactoNombre}</p>
                       <p className="text-xs text-muted-foreground">
                         {formatoFecha(p.fechaPago)} · {p.tipo === "por_cobrar" ? "Cobro" : "Pago mío"}
                       </p>
@@ -62,9 +103,9 @@ export default async function InicioPage() {
                 </li>
               ))}
             </ul>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }

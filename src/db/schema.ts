@@ -1,7 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
   check,
-  date,
   index,
   numeric,
   pgEnum,
@@ -12,11 +11,13 @@ import {
   integer,
 } from "drizzle-orm/pg-core";
 
-export const estadoPrestamo = pgEnum("estado_prestamo", ["activo", "pagado"]);
+export const estadoNota = pgEnum("estado_nota", ["activo", "pagado"]);
 
 // por_cobrar: el contacto nos debe (le prestamos / le vendimos).
 // por_pagar: nosotros le debemos (nos prestó / le compramos).
-export const tipoPrestamo = pgEnum("tipo_prestamo", ["por_cobrar", "por_pagar"]);
+export const tipoContacto = pgEnum("tipo_contacto", ["cliente", "proveedor", "empleado"]);
+
+export const tipoNota = pgEnum("tipo_nota", ["por_cobrar", "por_pagar"]);
 
 export const usuarios = pgTable("usuarios", {
   id: serial("id").primaryKey(),
@@ -26,33 +27,34 @@ export const usuarios = pgTable("usuarios", {
   creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const clientes = pgTable("clientes", {
+export const contactos = pgTable("contactos", {
   id: serial("id").primaryKey(),
   nombre: text("nombre").notNull(),
+  tipo: tipoContacto("tipo").notNull().default("cliente"),
   telefono: text("telefono"),
   creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
 });
 
-export const prestamos = pgTable(
-  "prestamos",
+export const notas = pgTable(
+  "notas",
   {
     id: serial("id").primaryKey(),
-    clienteId: integer("cliente_id")
+    contactoId: integer("contacto_id")
       .notNull()
-      .references(() => clientes.id, { onDelete: "restrict" }),
-    tipo: tipoPrestamo("tipo").notNull().default("por_cobrar"),
+      .references(() => contactos.id, { onDelete: "restrict" }),
+    tipo: tipoNota("tipo").notNull().default("por_cobrar"),
     montoOriginal: numeric("monto_original", { precision: 12, scale: 2, mode: "number" }).notNull(),
     saldoPendiente: numeric("saldo_pendiente", { precision: 12, scale: 2, mode: "number" }).notNull(),
-    estado: estadoPrestamo("estado").notNull().default("activo"),
-    fechaInicio: date("fecha_inicio").notNull().defaultNow(),
+    estado: estadoNota("estado").notNull().default("activo"),
+    fechaInicio: timestamp("fecha_inicio", { withTimezone: true }).notNull().defaultNow(),
     creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index("prestamos_cliente_idx").on(t.clienteId),
-    check("prestamos_monto_positivo", sql`${t.montoOriginal} > 0`),
+    index("notas_contacto_idx").on(t.contactoId),
+    check("notas_monto_positivo", sql`${t.montoOriginal} > 0`),
     // Cada nota nunca queda negativa; solo el total por contacto puede serlo.
     check(
-      "prestamos_saldo_valido",
+      "notas_saldo_valido",
       sql`${t.saldoPendiente} >= 0 and ${t.saldoPendiente} <= ${t.montoOriginal}`,
     ),
   ],
@@ -62,21 +64,23 @@ export const pagos = pgTable(
   "pagos",
   {
     id: serial("id").primaryKey(),
-    prestamoId: integer("prestamo_id")
+    notaId: integer("nota_id")
       .notNull()
-      .references(() => prestamos.id, { onDelete: "restrict" }),
+      .references(() => notas.id, { onDelete: "restrict" }),
     montoPagado: numeric("monto_pagado", { precision: 12, scale: 2, mode: "number" }).notNull(),
-    fechaPago: date("fecha_pago").notNull().defaultNow(),
-    notas: text("notas"),
+    fechaPago: timestamp("fecha_pago", { withTimezone: true }).notNull().defaultNow(),
+    comentario: text("comentario"),
     creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index("pagos_prestamo_idx").on(t.prestamoId),
+    index("pagos_nota_idx").on(t.notaId),
     check("pagos_monto_positivo", sql`${t.montoPagado} > 0`),
   ],
 );
 
-export type TipoPrestamo = (typeof tipoPrestamo.enumValues)[number];
-export type Cliente = typeof clientes.$inferSelect;
-export type Prestamo = typeof prestamos.$inferSelect;
+export type TipoContacto = (typeof tipoContacto.enumValues)[number];
+export type TipoNota = (typeof tipoNota.enumValues)[number];
+export type EstadoNota = (typeof estadoNota.enumValues)[number];
+export type Contacto = typeof contactos.$inferSelect;
+export type Nota = typeof notas.$inferSelect;
 export type Pago = typeof pagos.$inferSelect;

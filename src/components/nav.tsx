@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/", label: "Inicio", icon: HomeIcon },
-  { href: "/clientes", label: "Contactos", icon: UsersIcon },
+  { href: "/contactos", label: "Contactos", icon: UsersIcon },
 ];
 
 function isActive(pathname: string, href: string) {

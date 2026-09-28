@@ -10,15 +10,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Field, FormError } from "./field";
 
 export function PagoForm({
-  prestamoId,
+  notaId,
   saldoPendiente,
   fechaHoy,
 }: {
-  prestamoId: number;
+  notaId: number;
   saldoPendiente: number;
   fechaHoy: string;
 }) {
-  const [state, action, pending] = useActionState(registrarPago.bind(null, prestamoId), undefined);
+  const [state, action, pending] = useActionState(registrarPago.bind(null, notaId), undefined);
   const formRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -44,11 +44,11 @@ export function PagoForm({
           className="h-11 text-lg"
         />
       </Field>
-      <Field label="Fecha" htmlFor="fechaPago" errors={state?.fieldErrors?.fechaPago}>
-        <Input id="fechaPago" name="fechaPago" type="date" defaultValue={fechaHoy} required className="h-11" />
+      <Field label="Fecha y hora" htmlFor="fechaPago" errors={state?.fieldErrors?.fechaPago}>
+        <Input id="fechaPago" name="fechaPago" type="datetime-local" defaultValue={fechaHoy} required className="h-11" />
       </Field>
-      <Field label="Notas (opcional)" htmlFor="notas" errors={state?.fieldErrors?.notas}>
-        <Textarea id="notas" name="notas" rows={2} maxLength={500} />
+      <Field label="Comentario (opcional)" htmlFor="comentario" errors={state?.fieldErrors?.comentario}>
+        <Textarea id="comentario" name="comentario" rows={2} maxLength={500} />
       </Field>
       <FormError message={state?.error} />
       <Button type="submit" size="lg" className="h-11" disabled={pending}>

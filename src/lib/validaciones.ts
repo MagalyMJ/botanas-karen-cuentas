@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { deFechaLocal } from "@/lib/format";
 
 const monto = z.coerce
   .number({ error: "Ingresa un monto válido" })
@@ -7,7 +8,12 @@ const monto = z.coerce
   // Redondea a centavos para evitar errores de punto flotante.
   .transform((n) => Math.round(n * 100) / 100);
 
-const fecha = z.iso.date("Fecha inválida");
+// Valor de <input type="datetime-local"> ("YYYY-MM-DDTHH:mm"), en hora del negocio.
+const fecha = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/, "Fecha y hora inválidas")
+  .transform(deFechaLocal)
+  .refine((d) => !Number.isNaN(d.getTime()), "Fecha y hora inválidas");
 
 const textoOpcional = z
   .string()
@@ -15,14 +21,15 @@ const textoOpcional = z
   .transform((s) => (s === "" ? null : s))
   .nullable();
 
-export const clienteSchema = z.object({
+export const contactoSchema = z.object({
   nombre: z.string().trim().min(1, "El nombre es obligatorio").max(120),
+  tipo: z.enum(["cliente", "proveedor", "empleado"], { error: "Elige el tipo de contacto" }),
   telefono: textoOpcional.pipe(
     z.string().regex(/^[\d\s()+-]{7,20}$/, "Teléfono inválido").nullable(),
   ),
 });
 
-export const prestamoSchema = z.object({
+export const notaSchema = z.object({
   tipo: z.enum(["por_cobrar", "por_pagar"], { error: "Elige el tipo de nota" }),
   montoOriginal: monto,
   fechaInicio: fecha,
@@ -31,7 +38,7 @@ export const prestamoSchema = z.object({
 export const pagoSchema = z.object({
   montoPagado: monto,
   fechaPago: fecha,
-  notas: textoOpcional.pipe(z.string().max(500).nullable()),
+  comentario: textoOpcional.pipe(z.string().max(500).nullable()),
 });
 
 export type FormState = {

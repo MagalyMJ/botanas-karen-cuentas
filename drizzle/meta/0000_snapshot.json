@@ -1,11 +1,11 @@
 {
-  "id": "15094588-f18b-4eb9-95fe-1aaa1975bc81",
+  "id": "57b1199b-0c25-48a8-a0da-ef30056b0883",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.clientes": {
-      "name": "clientes",
+    "public.contactos": {
+      "name": "contactos",
       "schema": "",
       "columns": {
         "id": {
@@ -19,6 +19,14 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "tipo": {
+          "name": "tipo",
+          "type": "tipo_contacto",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'cliente'"
         },
         "telefono": {
           "name": "telefono",
@@ -42,8 +50,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.pagos": {
-      "name": "pagos",
+    "public.notas": {
+      "name": "notas",
       "schema": "",
       "columns": {
         "id": {
@@ -52,101 +60,15 @@
           "primaryKey": true,
           "notNull": true
         },
-        "prestamo_id": {
-          "name": "prestamo_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "monto_pagado": {
-          "name": "monto_pagado",
-          "type": "numeric(12, 2)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "fecha_pago": {
-          "name": "fecha_pago",
-          "type": "date",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "notas": {
-          "name": "notas",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "creado_en": {
-          "name": "creado_en",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "pagos_prestamo_idx": {
-          "name": "pagos_prestamo_idx",
-          "columns": [
-            {
-              "expression": "prestamo_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "pagos_prestamo_id_prestamos_id_fk": {
-          "name": "pagos_prestamo_id_prestamos_id_fk",
-          "tableFrom": "pagos",
-          "tableTo": "prestamos",
-          "columnsFrom": [
-            "prestamo_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {
-        "pagos_monto_positivo": {
-          "name": "pagos_monto_positivo",
-          "value": "\"pagos\".\"monto_pagado\" > 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.prestamos": {
-      "name": "prestamos",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "serial",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "cliente_id": {
-          "name": "cliente_id",
+        "contacto_id": {
+          "name": "contacto_id",
           "type": "integer",
           "primaryKey": false,
           "notNull": true
         },
         "tipo": {
           "name": "tipo",
-          "type": "tipo_prestamo",
+          "type": "tipo_nota",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -166,7 +88,7 @@
         },
         "estado": {
           "name": "estado",
-          "type": "estado_prestamo",
+          "type": "estado_nota",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
@@ -174,7 +96,7 @@
         },
         "fecha_inicio": {
           "name": "fecha_inicio",
-          "type": "date",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
@@ -188,11 +110,11 @@
         }
       },
       "indexes": {
-        "prestamos_cliente_idx": {
-          "name": "prestamos_cliente_idx",
+        "notas_contacto_idx": {
+          "name": "notas_contacto_idx",
           "columns": [
             {
-              "expression": "cliente_id",
+              "expression": "contacto_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -205,12 +127,12 @@
         }
       },
       "foreignKeys": {
-        "prestamos_cliente_id_clientes_id_fk": {
-          "name": "prestamos_cliente_id_clientes_id_fk",
-          "tableFrom": "prestamos",
-          "tableTo": "clientes",
+        "notas_contacto_id_contactos_id_fk": {
+          "name": "notas_contacto_id_contactos_id_fk",
+          "tableFrom": "notas",
+          "tableTo": "contactos",
           "columnsFrom": [
-            "cliente_id"
+            "contacto_id"
           ],
           "columnsTo": [
             "id"
@@ -223,13 +145,99 @@
       "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {
-        "prestamos_monto_positivo": {
-          "name": "prestamos_monto_positivo",
-          "value": "\"prestamos\".\"monto_original\" > 0"
+        "notas_monto_positivo": {
+          "name": "notas_monto_positivo",
+          "value": "\"notas\".\"monto_original\" > 0"
         },
-        "prestamos_saldo_valido": {
-          "name": "prestamos_saldo_valido",
-          "value": "\"prestamos\".\"saldo_pendiente\" >= 0 and \"prestamos\".\"saldo_pendiente\" <= \"prestamos\".\"monto_original\""
+        "notas_saldo_valido": {
+          "name": "notas_saldo_valido",
+          "value": "\"notas\".\"saldo_pendiente\" >= 0 and \"notas\".\"saldo_pendiente\" <= \"notas\".\"monto_original\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.pagos": {
+      "name": "pagos",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "nota_id": {
+          "name": "nota_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "monto_pagado": {
+          "name": "monto_pagado",
+          "type": "numeric(12, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "fecha_pago": {
+          "name": "fecha_pago",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "comentario": {
+          "name": "comentario",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "creado_en": {
+          "name": "creado_en",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "pagos_nota_idx": {
+          "name": "pagos_nota_idx",
+          "columns": [
+            {
+              "expression": "nota_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pagos_nota_id_notas_id_fk": {
+          "name": "pagos_nota_id_notas_id_fk",
+          "tableFrom": "pagos",
+          "tableTo": "notas",
+          "columnsFrom": [
+            "nota_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "pagos_monto_positivo": {
+          "name": "pagos_monto_positivo",
+          "value": "\"pagos\".\"monto_pagado\" > 0"
         }
       },
       "isRLSEnabled": false
@@ -288,16 +296,25 @@
     }
   },
   "enums": {
-    "public.estado_prestamo": {
-      "name": "estado_prestamo",
+    "public.estado_nota": {
+      "name": "estado_nota",
       "schema": "public",
       "values": [
         "activo",
         "pagado"
       ]
     },
-    "public.tipo_prestamo": {
-      "name": "tipo_prestamo",
+    "public.tipo_contacto": {
+      "name": "tipo_contacto",
+      "schema": "public",
+      "values": [
+        "cliente",
+        "proveedor",
+        "empleado"
+      ]
+    },
+    "public.tipo_nota": {
+      "name": "tipo_nota",
       "schema": "public",
       "values": [
         "por_cobrar",

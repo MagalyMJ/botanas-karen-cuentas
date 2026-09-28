@@ -2,7 +2,16 @@ import { cn } from "@/lib/utils";
 import { formatoMoneda } from "@/lib/format";
 
 /** Saldo neto con un contacto: positivo = nos debe, negativo = le debemos. */
-export function Balance({ valor, className }: { valor: number; className?: string }) {
+export function Balance({
+  valor,
+  sinSigno = false,
+  className,
+}: {
+  valor: number;
+  /** Muestra el monto sin "-" (el color sigue indicando la dirección). */
+  sinSigno?: boolean;
+  className?: string;
+}) {
   return (
     <span
       className={cn(
@@ -12,7 +21,7 @@ export function Balance({ valor, className }: { valor: number; className?: strin
         className,
       )}
     >
-      {formatoMoneda(valor)}
+      {formatoMoneda(sinSigno ? Math.abs(valor) : valor)}
     </span>
   );
 }

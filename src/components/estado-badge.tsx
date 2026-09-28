@@ -1,20 +1,14 @@
 import { Badge } from "@/components/ui/badge";
-import type { TipoPrestamo } from "@/db/schema";
+import type { EstadoNota, TipoNota } from "@/db/schema";
 
-export function EstadoBadge({ estado }: { estado: "activo" | "pagado" }) {
-  return estado === "activo" ? (
-    <Badge variant="default">Activo</Badge>
-  ) : (
-    <Badge variant="secondary">Pagado</Badge>
-  );
-}
-
-export const etiquetaTipo: Record<TipoPrestamo, string> = {
+export const etiquetaTipo: Record<TipoNota, string> = {
   por_cobrar: "Me debe",
   por_pagar: "Le debo",
 };
 
-export function TipoBadge({ tipo }: { tipo: TipoPrestamo }) {
+/** Una sola etiqueta por nota: "Pagado" si ya se liquidó; si no, su tipo. */
+export function NotaBadge({ tipo, estado }: { tipo: TipoNota; estado: EstadoNota }) {
+  if (estado === "pagado") return <Badge variant="secondary">Pagado</Badge>;
   return (
     <Badge
       variant="outline"

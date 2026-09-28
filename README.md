@@ -1,10 +1,26 @@
 # Cuentas — Botanas Karen
 
-App web privada (mobile-first / PWA) para administrar clientes, préstamos y cobros.
+App web privada (mobile-first / PWA) para llevar las cuentas con clientes, proveedores y empleados: notas por cobrar o por pagar y sus pagos.
 
 **Stack:** Next.js 16 (App Router, Server Actions) · Neon Postgres · Drizzle ORM · Auth.js v5 (credenciales) · Tailwind CSS 4 + shadcn/ui · Zod.
 
-## Configuración local
+## Probar sin base de datos (modo local)
+
+Si no defines `DATABASE_URL`, la app usa un Postgres embebido ([PGlite](https://pglite.dev))
+guardado en `.pglite/`. No necesitas Neon, migraciones ni seeds:
+
+```bash
+npm install
+npx auth secret   # crea AUTH_SECRET en .env.local
+npm run dev
+```
+
+- Entra con **demo@ejemplo.com / demo1234** (se crea junto con datos de ejemplo la primera vez).
+- Al arrancar, el esquema de `src/db/schema.ts` se sincroniza solo: puedes cambiarlo libremente.
+- `npm run dev:fresh` borra la base local y arranca con datos de ejemplo nuevos (o `npm run db:local:reset` solo para borrarla).
+- En Vercel siempre se exige `DATABASE_URL`; el modo local nunca se usa en producción.
+
+## Configuración con Neon
 
 1. Crea una base de datos en [Neon](https://neon.tech) y copia la cadena de conexión.
 2. Copia `.env.example` a `.env.local` **y** a `.env` (drizzle-kit y los scripts leen `.env`) y llena:
@@ -31,7 +47,8 @@ App web privada (mobile-first / PWA) para administrar clientes, préstamos y cob
 | `npm run db:generate` | Genera una migración tras cambiar `src/db/schema.ts` |
 | `npm run db:migrate` | Aplica migraciones pendientes |
 | `npm run db:studio` | Explorador visual de la base de datos |
-| `npm run crear-usuario` | Crea/actualiza un usuario |
+| `npm run crear-usuario` | Crea/actualiza un usuario (Neon) |
+| `npm run db:local:reset` | Borra la base local de desarrollo |
 
 ## Despliegue en Vercel
 
@@ -43,6 +60,7 @@ App web privada (mobile-first / PWA) para administrar clientes, préstamos y cob
 ## Lógica de negocio
 
 - **Sin intereses:** al crear una nota, `saldo_pendiente = monto_original`.
+- **Tablas:** `contactos` (tipo `cliente`, `proveedor` o `empleado`), `notas` y `pagos`.
 - **Tipo de nota:** `por_cobrar` (el contacto nos debe) o `por_pagar` (le debemos, p. ej. un proveedor).
   Los montos de notas y pagos siempre son positivos; el **total por contacto** es
   lo que nos deben menos lo que debemos, y puede ser negativo.
@@ -56,7 +74,7 @@ App web privada (mobile-first / PWA) para administrar clientes, préstamos y cob
 
 ```
 src/
-  app/(app)/          páginas protegidas: inicio, clientes, préstamos
+  app/(app)/          páginas protegidas: inicio, /contactos, /notas
   app/login/          inicio de sesión
   app/manifest.ts     manifiesto PWA (+ icon.tsx / apple-icon.tsx)
   auth.ts             Auth.js (proveedor de credenciales)
