@@ -7,16 +7,21 @@ import { formatoMoneda } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { AtendioSelect, type Empleado } from "./atendio-select";
 import { Field, FormError } from "./field";
 
 export function PagoForm({
   notaId,
   saldoPendiente,
   fechaHoy,
+  empleados,
+  usuarioNombre,
 }: {
   notaId: number;
   saldoPendiente: number;
   fechaHoy: string;
+  empleados: Empleado[];
+  usuarioNombre: string;
 }) {
   const [state, action, pending] = useActionState(registrarPago.bind(null, notaId), undefined);
   const formRef = useRef<HTMLFormElement>(null);
@@ -50,6 +55,11 @@ export function PagoForm({
       <Field label="Comentario (opcional)" htmlFor="comentario" errors={state?.fieldErrors?.comentario}>
         <Textarea id="comentario" name="comentario" rows={2} maxLength={500} />
       </Field>
+      <AtendioSelect
+        empleados={empleados}
+        usuarioNombre={usuarioNombre}
+        errors={state?.fieldErrors?.atendidoPorId}
+      />
       <FormError message={state?.error} />
       <Button type="submit" size="lg" className="h-11" disabled={pending}>
         {pending ? "Registrando…" : "Registrar pago"}

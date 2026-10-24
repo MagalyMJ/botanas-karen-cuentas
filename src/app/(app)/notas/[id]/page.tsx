@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
-import { getNota } from "@/lib/queries";
-import { ahoraLocal, formatoFecha, formatoMoneda } from "@/lib/format";
+import { requireUser } from "@/auth";
+import { getEmpleados, getNota } from "@/lib/queries";
+import { ahoraLocal, formatoFecha, formatoMoneda, textoResponsable } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NotaBadge } from "@/components/estado-badge";
 import { PageHeader } from "@/components/page-header";
@@ -9,7 +10,7 @@ import { PagoForm } from "@/components/forms/pago-form";
 export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
-  const nota = await getNota(id);
+  const [nota, empleados, usuario] = await Promise.all([getNota(id), getEmpleados(), requireUser()]);
   if (!nota) notFound();
 
   const pagado = nota.montoOriginal - Math.max(nota.saldoPendiente, 0);
@@ -42,6 +43,9 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
             <p className="mt-1 text-xs text-muted-foreground">
               {progreso}% pagado · iniciado el {formatoFecha(nota.fechaInicio)}
             </p>
+            <p className="text-xs text-muted-foreground">
+              {textoResponsable(nota.atendidoPor, nota.registradoPor)}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -54,7 +58,13 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <PagoForm notaId={nota.id} saldoPendiente={nota.saldoPendiente} fechaHoy={ahoraLocal()} />
+            <PagoForm
+              notaId={nota.id}
+              saldoPendiente={nota.saldoPendiente}
+              fechaHoy={ahoraLocal()}
+              empleados={empleados}
+              usuarioNombre={usuario.name ?? "yo"}
+            />
           </CardContent>
         </Card>
       )}
@@ -72,6 +82,9 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
                 <li key={p.id} className="flex items-start justify-between gap-3 py-3">
                   <div className="min-w-0">
                     <p className="text-sm">{formatoFecha(p.fechaPago)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {textoResponsable(p.atendidoPor, p.registradoPor)}
+                    </p>
                     {p.comentario && <p className="text-xs break-words text-muted-foreground">{p.comentario}</p>}
                   </div>
                   <span className="font-medium tabular-nums">{formatoMoneda(p.montoPagado)}</span>

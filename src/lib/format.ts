@@ -49,3 +49,10 @@ export function deFechaLocal(valor: string) {
   // Segunda pasada por si el desfase cambia justo en ese rango (horario de verano).
   return new Date(comoUtc.getTime() - desfase(aprox));
 }
+
+/** "Atendió Luis · registró Karen", o "Atendió y registró Karen" si fue la misma persona. */
+export function textoResponsable(atendidoPor: string | null, registradoPor: string) {
+  return atendidoPor
+    ? `Atendió ${atendidoPor} · registró ${registradoPor}`
+    : `Atendió y registró ${registradoPor}`;
+}

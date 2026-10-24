@@ -44,11 +44,15 @@ function haceDias(dias: number, hora: number, minuto: number) {
 }
 
 async function sembrar(db: PgliteDatabase<typeof schema>) {
-  await db.insert(schema.usuarios).values({
-    email: USUARIO_DEMO.email,
-    nombre: "Demo",
-    passwordHash: await bcrypt.hash(USUARIO_DEMO.password, 10),
-  });
+  const [usuario] = await db
+    .insert(schema.usuarios)
+    .values({
+      email: USUARIO_DEMO.email,
+      nombre: "Demo",
+      passwordHash: await bcrypt.hash(USUARIO_DEMO.password, 10),
+    })
+    .returning({ id: schema.usuarios.id });
+  const yo = { registradoPorId: usuario.id };
 
   const [contacto, proveedor, empleado, contactoPagado] = await db
     .insert(schema.contactos)
@@ -59,21 +63,22 @@ async function sembrar(db: PgliteDatabase<typeof schema>) {
       { nombre: "Abarrotes La Esquina", tipo: "cliente", telefono: null },
     ])
     .returning({ id: schema.contactos.id });
+  const atendioLuis = { ...yo, atendidoPorId: empleado.id };
 
   const [notaCliente, , , notaPagada] = await db
     .insert(schema.notas)
     .values([
-      { contactoId: contacto.id, tipo: "por_cobrar", montoOriginal: 1200, saldoPendiente: 1000, fechaInicio: haceDias(12, 10, 30) },
-      { contactoId: proveedor.id, tipo: "por_pagar", montoOriginal: 400, saldoPendiente: 400, fechaInicio: haceDias(3, 8, 15) },
-      { contactoId: empleado.id, tipo: "por_cobrar", montoOriginal: 300, saldoPendiente: 300, fechaInicio: haceDias(1, 18, 5) },
-      { contactoId: contactoPagado.id, tipo: "por_cobrar", montoOriginal: 250, saldoPendiente: 0, estado: "pagado", fechaInicio: haceDias(20, 12, 0) },
+      { contactoId: contacto.id, tipo: "por_cobrar", montoOriginal: 1200, saldoPendiente: 1000, fechaInicio: haceDias(12, 10, 30), ...atendioLuis },
+      { contactoId: proveedor.id, tipo: "por_pagar", montoOriginal: 400, saldoPendiente: 400, fechaInicio: haceDias(3, 8, 15), ...yo },
+      { contactoId: empleado.id, tipo: "por_cobrar", montoOriginal: 300, saldoPendiente: 300, fechaInicio: haceDias(1, 18, 5), ...yo },
+      { contactoId: contactoPagado.id, tipo: "por_cobrar", montoOriginal: 250, saldoPendiente: 0, estado: "pagado", fechaInicio: haceDias(20, 12, 0), ...yo },
     ])
     .returning({ id: schema.notas.id });
 
   await db.insert(schema.pagos).values([
-    { notaId: notaCliente.id, montoPagado: 200, comentario: "Abono en efectivo", fechaPago: haceDias(5, 16, 20) },
-    { notaId: notaPagada.id, montoPagado: 150, fechaPago: haceDias(14, 11, 45) },
-    { notaId: notaPagada.id, montoPagado: 100, comentario: "Liquidó", fechaPago: haceDias(2, 9, 10) },
+    { notaId: notaCliente.id, montoPagado: 200, comentario: "Abono en efectivo", fechaPago: haceDias(5, 16, 20), ...atendioLuis },
+    { notaId: notaPagada.id, montoPagado: 150, fechaPago: haceDias(14, 11, 45), ...yo },
+    { notaId: notaPagada.id, montoPagado: 100, comentario: "Liquidó", fechaPago: haceDias(2, 9, 10), ...atendioLuis },
   ]);
 
   console.log(

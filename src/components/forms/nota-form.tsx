@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { crearNota } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AtendioSelect, type Empleado } from "./atendio-select";
 import { Field, FormError } from "./field";
 
 const opcionesTipo = [
@@ -11,7 +12,17 @@ const opcionesTipo = [
   { value: "por_pagar", label: "Le debo", ayuda: "Me prestó o le compré" },
 ] as const;
 
-export function NotaForm({ contactoId, fechaHoy }: { contactoId: number; fechaHoy: string }) {
+export function NotaForm({
+  contactoId,
+  fechaHoy,
+  empleados,
+  usuarioNombre,
+}: {
+  contactoId: number;
+  fechaHoy: string;
+  empleados: Empleado[];
+  usuarioNombre: string;
+}) {
   const [state, action, pending] = useActionState(crearNota.bind(null, contactoId), undefined);
   return (
     <form action={action} className="grid gap-4">
@@ -56,6 +67,11 @@ export function NotaForm({ contactoId, fechaHoy }: { contactoId: number; fechaHo
       <Field label="Fecha y hora" htmlFor="fechaInicio" errors={state?.fieldErrors?.fechaInicio}>
         <Input id="fechaInicio" name="fechaInicio" type="datetime-local" defaultValue={fechaHoy} required className="h-11" />
       </Field>
+      <AtendioSelect
+        empleados={empleados}
+        usuarioNombre={usuarioNombre}
+        errors={state?.fieldErrors?.atendidoPorId}
+      />
       <FormError message={state?.error} />
       <Button type="submit" size="lg" className="h-11" disabled={pending}>
         {pending ? "Guardando…" : "Guardar nota"}

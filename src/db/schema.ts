@@ -47,6 +47,12 @@ export const notas = pgTable(
     saldoPendiente: numeric("saldo_pendiente", { precision: 12, scale: 2, mode: "number" }).notNull(),
     estado: estadoNota("estado").notNull().default("activo"),
     fechaInicio: timestamp("fecha_inicio", { withTimezone: true }).notNull().defaultNow(),
+    // Usuario que capturó el registro (automático) y empleado que atendió (opcional;
+    // vacío = lo atendió quien lo registró).
+    registradoPorId: integer("registrado_por_id")
+      .notNull()
+      .references(() => usuarios.id, { onDelete: "restrict" }),
+    atendidoPorId: integer("atendido_por_id").references(() => contactos.id, { onDelete: "restrict" }),
     creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
@@ -70,6 +76,12 @@ export const pagos = pgTable(
     montoPagado: numeric("monto_pagado", { precision: 12, scale: 2, mode: "number" }).notNull(),
     fechaPago: timestamp("fecha_pago", { withTimezone: true }).notNull().defaultNow(),
     comentario: text("comentario"),
+    // Usuario que capturó el registro (automático) y empleado que atendió (opcional;
+    // vacío = lo atendió quien lo registró).
+    registradoPorId: integer("registrado_por_id")
+      .notNull()
+      .references(() => usuarios.id, { onDelete: "restrict" }),
+    atendidoPorId: integer("atendido_por_id").references(() => contactos.id, { onDelete: "restrict" }),
     creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

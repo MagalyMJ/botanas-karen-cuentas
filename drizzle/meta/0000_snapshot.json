@@ -1,5 +1,5 @@
 {
-  "id": "57b1199b-0c25-48a8-a0da-ef30056b0883",
+  "id": "8498c353-1392-45ee-982e-28c46248a0eb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -101,6 +101,18 @@
           "notNull": true,
           "default": "now()"
         },
+        "registrado_por_id": {
+          "name": "registrado_por_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atendido_por_id": {
+          "name": "atendido_por_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "creado_en": {
           "name": "creado_en",
           "type": "timestamp with time zone",
@@ -133,6 +145,32 @@
           "tableTo": "contactos",
           "columnsFrom": [
             "contacto_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "notas_registrado_por_id_usuarios_id_fk": {
+          "name": "notas_registrado_por_id_usuarios_id_fk",
+          "tableFrom": "notas",
+          "tableTo": "usuarios",
+          "columnsFrom": [
+            "registrado_por_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "notas_atendido_por_id_contactos_id_fk": {
+          "name": "notas_atendido_por_id_contactos_id_fk",
+          "tableFrom": "notas",
+          "tableTo": "contactos",
+          "columnsFrom": [
+            "atendido_por_id"
           ],
           "columnsTo": [
             "id"
@@ -191,6 +229,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "registrado_por_id": {
+          "name": "registrado_por_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atendido_por_id": {
+          "name": "atendido_por_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "creado_en": {
           "name": "creado_en",
           "type": "timestamp with time zone",
@@ -223,6 +273,32 @@
           "tableTo": "notas",
           "columnsFrom": [
             "nota_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "pagos_registrado_por_id_usuarios_id_fk": {
+          "name": "pagos_registrado_por_id_usuarios_id_fk",
+          "tableFrom": "pagos",
+          "tableTo": "usuarios",
+          "columnsFrom": [
+            "registrado_por_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "pagos_atendido_por_id_contactos_id_fk": {
+          "name": "pagos_atendido_por_id_contactos_id_fk",
+          "tableFrom": "pagos",
+          "tableTo": "contactos",
+          "columnsFrom": [
+            "atendido_por_id"
           ],
           "columnsTo": [
             "id"

@@ -29,13 +29,20 @@ export const contactoSchema = z.object({
   ),
 });
 
+// Valor del selector "Atendió": "" = el usuario actual; si no, id de un empleado.
+const atendidoPorId = z
+  .union([z.literal(""), z.coerce.number().int().positive()])
+  .transform((v) => (v === "" ? null : v));
+
 export const notaSchema = z.object({
+  atendidoPorId,
   tipo: z.enum(["por_cobrar", "por_pagar"], { error: "Elige el tipo de nota" }),
   montoOriginal: monto,
   fechaInicio: fecha,
 });
 
 export const pagoSchema = z.object({
+  atendidoPorId,
   montoPagado: monto,
   fechaPago: fecha,
   comentario: textoOpcional.pipe(z.string().max(500).nullable()),

@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { AuthError } from "next-auth";
 import { db } from "@/db";
 import { contactos, notas } from "@/db/schema";
@@ -47,18 +47,31 @@ export async function crearContacto(_prev: FormState, formData: FormData): Promi
   redirect(`/contactos/${contacto.id}`);
 }
 
+/** Verifica que quien atendió (si se eligió) sea un empleado registrado. */
+async function validarAtendio(atendidoPorId: number | null): Promise<FormState> {
+  if (atendidoPorId === null) return undefined;
+  const [empleado] = await db
+    .select({ id: contactos.id })
+    .from(contactos)
+    .where(and(eq(contactos.id, atendidoPorId), eq(contactos.tipo, "empleado")));
+  return empleado ? undefined : { fieldErrors: { atendidoPorId: ["Elige un empleado válido."] } };
+}
+
 export async function crearNota(
   contactoId: number,
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requireUser();
+  const usuario = await requireUser();
   const parsed = notaSchema.safeParse({
+    atendidoPorId: formData.get("atendidoPorId") ?? "",
     tipo: formData.get("tipo"),
     montoOriginal: formData.get("montoOriginal"),
     fechaInicio: formData.get("fechaInicio"),
   });
   if (!parsed.success) return erroresDeCampo(parsed.error);
+  const errorAtendio = await validarAtendio(parsed.data.atendidoPorId);
+  if (errorAtendio) return errorAtendio;
 
   const [nota] = await db
     .insert(notas)
@@ -68,6 +81,8 @@ export async function crearNota(
       montoOriginal: parsed.data.montoOriginal,
       saldoPendiente: parsed.data.montoOriginal,
       fechaInicio: parsed.data.fechaInicio,
+      registradoPorId: Number(usuario.id),
+      atendidoPorId: parsed.data.atendidoPorId,
     })
     .returning({ id: notas.id });
 
@@ -80,15 +95,19 @@ export async function registrarPago(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  await requireUser();
+  const usuario = await requireUser();
   const parsed = pagoSchema.safeParse({
+    atendidoPorId: formData.get("atendidoPorId") ?? "",
     montoPagado: formData.get("montoPagado"),
     fechaPago: formData.get("fechaPago"),
     comentario: formData.get("comentario") ?? "",
   });
   if (!parsed.success) return erroresDeCampo(parsed.error);
 
-  const { montoPagado, fechaPago, comentario } = parsed.data;
+  const errorAtendio = await validarAtendio(parsed.data.atendidoPorId);
+  if (errorAtendio) return errorAtendio;
+
+  const { montoPagado, fechaPago, comentario, atendidoPorId } = parsed.data;
   const monto = montoPagado.toFixed(2);
 
   // Una sola sentencia SQL = atómica: descuenta el saldo, actualiza el estado e inserta
@@ -105,8 +124,10 @@ export async function registrarPago(
       WHERE id = ${notaId} AND estado = 'activo' AND saldo_pendiente >= ${monto}::numeric
       RETURNING id, saldo_pendiente, estado
     ), ins AS (
-      INSERT INTO pagos (nota_id, monto_pagado, fecha_pago, comentario)
-      SELECT id, ${monto}::numeric, ${fechaPago.toISOString()}::timestamptz, ${comentario} FROM upd
+      INSERT INTO pagos (nota_id, monto_pagado, fecha_pago, comentario, registrado_por_id, atendido_por_id)
+      SELECT id, ${monto}::numeric, ${fechaPago.toISOString()}::timestamptz, ${comentario},
+             ${Number(usuario.id)}::int, ${atendidoPorId}::int
+      FROM upd
       RETURNING id
     )
     SELECT upd.saldo_pendiente, upd.estado FROM upd, ins

@@ -1,7 +1,8 @@
 import "server-only";
 import { and, desc, eq, gte, ilike, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { contactos, pagos, notas, type TipoContacto } from "@/db/schema";
+import { alias } from "drizzle-orm/pg-core";
+import { contactos, pagos, notas, usuarios, type TipoContacto } from "@/db/schema";
 import { ZONA_HORARIA } from "@/lib/format";
 
 // Saldo con signo: positivo = nos deben, negativo = debemos.
@@ -101,18 +102,50 @@ export async function getContacto(id: number) {
   return { ...contacto, notas: notasContacto };
 }
 
+export async function getEmpleados() {
+  return db
+    .select({ id: contactos.id, nombre: contactos.nombre })
+    .from(contactos)
+    .where(eq(contactos.tipo, "empleado"))
+    .orderBy(contactos.nombre);
+}
+
+const atendio = alias(contactos, "atendio");
+
 export async function getNota(id: number) {
   const [row] = await db
-    .select({ nota: notas, contacto: contactos })
+    .select({
+      nota: notas,
+      contacto: contactos,
+      registradoPor: usuarios.nombre,
+      atendidoPor: atendio.nombre,
+    })
     .from(notas)
     .innerJoin(contactos, eq(notas.contactoId, contactos.id))
+    .innerJoin(usuarios, eq(notas.registradoPorId, usuarios.id))
+    .leftJoin(atendio, eq(notas.atendidoPorId, atendio.id))
     .where(eq(notas.id, id))
     .limit(1);
   if (!row) return null;
   const pagosNota = await db
-    .select()
+    .select({
+      id: pagos.id,
+      montoPagado: pagos.montoPagado,
+      fechaPago: pagos.fechaPago,
+      comentario: pagos.comentario,
+      registradoPor: usuarios.nombre,
+      atendidoPor: atendio.nombre,
+    })
     .from(pagos)
+    .innerJoin(usuarios, eq(pagos.registradoPorId, usuarios.id))
+    .leftJoin(atendio, eq(pagos.atendidoPorId, atendio.id))
     .where(eq(pagos.notaId, id))
     .orderBy(desc(pagos.fechaPago), desc(pagos.id));
-  return { ...row.nota, contacto: row.contacto, pagos: pagosNota };
+  return {
+    ...row.nota,
+    contacto: row.contacto,
+    registradoPor: row.registradoPor,
+    atendidoPor: row.atendidoPor,
+    pagos: pagosNota,
+  };
 }
