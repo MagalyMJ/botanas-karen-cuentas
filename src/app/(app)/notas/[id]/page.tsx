@@ -42,8 +42,10 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
 
   const monto = montoVigente(nota);
   const pagado = monto - Math.max(nota.saldoPendiente, 0);
-  // Una corrección puede dejar el monto en 0 (nada que pagar): cuenta como pagada.
-  const progreso = monto > 0 ? Math.min(100, Math.round((pagado / monto) * 100)) : 100;
+  // 100% solo con saldo en 0 (también si una corrección dejó el monto en 0); si falta
+  // aunque sea un centavo, a lo más 99%.
+  const progreso =
+    nota.saldoPendiente === 0 ? 100 : Math.min(99, Math.round((pagado / monto) * 100));
 
   return (
     <>

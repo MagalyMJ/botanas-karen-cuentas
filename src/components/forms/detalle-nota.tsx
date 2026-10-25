@@ -5,6 +5,7 @@ import { PlusIcon, XIcon } from "lucide-react";
 import { formatoMoneda, importeLinea, totalLineas } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CampoNumero } from "./campo-numero";
 
 type Renglon = { key: number; descripcion: string; cantidad: string; precio: string };
 
@@ -95,26 +96,19 @@ export function DetalleNota({
               </Button>
             </div>
             <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
-              <Input
+              <CampoNumero
+                decimales={3}
                 name="lineaCantidad"
                 aria-label={`Cantidad del renglón ${i + 1}`}
                 placeholder="Cantidad"
-                type="number"
-                inputMode="decimal"
-                step="any"
-                min="0"
                 value={x.cantidad}
                 onChange={(e) => cambiar(x.key, "cantidad", e.target.value)}
                 className="h-11"
               />
-              <Input
+              <CampoNumero
                 name="lineaPrecio"
                 aria-label={`Precio unitario del renglón ${i + 1}`}
                 placeholder="Precio c/u"
-                type="number"
-                inputMode="decimal"
-                step="0.01"
-                min="0"
                 value={x.precio}
                 onChange={(e) => cambiar(x.key, "precio", e.target.value)}
                 className="h-11"

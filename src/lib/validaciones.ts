@@ -1,10 +1,18 @@
 import { z } from "zod";
 import { deFechaLocal } from "@/lib/format";
+import { regexNumero } from "@/lib/numeros";
 
-const monto = z.coerce
-  .number({ error: "Ingresa un monto válido" })
-  .positive("El monto debe ser mayor a 0")
-  .max(9_999_999_999.99, "Monto demasiado grande")
+/** Texto de un campo numérico (solo dígitos y punto, ver CampoNumero) convertido a número. */
+const textoNumero = (decimales: number, vacio: string) =>
+  z
+    .string({ error: vacio })
+    .trim()
+    .min(1, vacio)
+    .regex(regexNumero(decimales), decimales > 0 ? "Escribe solo números y punto decimal" : "Escribe solo números")
+    .transform(Number);
+
+const monto = textoNumero(2, "Ingresa un monto")
+  .pipe(z.number().positive("El monto debe ser mayor a 0").max(9_999_999_999.99, "Monto demasiado grande"))
   // Redondea a centavos para evitar errores de punto flotante.
   .transform((n) => Math.round(n * 100) / 100);
 
@@ -48,16 +56,12 @@ export const pagoSchema = z.object({
   comentario: textoOpcional.pipe(z.string().max(500).nullable()),
 });
 
-// Campo numérico obligatorio: "" es error (z.coerce lo convertiría en 0).
-const numero = (vacio: string) =>
-  z.string().trim().min(1, vacio).pipe(z.coerce.number({ error: "Ingresa un número válido" }));
-
 export const lineaSchema = z.object({
   descripcion: z.string().trim().min(1, "Escribe qué fue").max(200, "Descripción demasiado larga"),
-  cantidad: numero("Escribe la cantidad")
+  cantidad: textoNumero(3, "Escribe la cantidad")
     .pipe(z.number().positive("La cantidad debe ser mayor a 0").max(99_999_999, "Cantidad demasiado grande"))
     .transform((n) => Math.round(n * 1000) / 1000),
-  precioUnitario: numero("Escribe el precio")
+  precioUnitario: textoNumero(2, "Escribe el precio")
     .pipe(z.number().min(0, "El precio no puede ser negativo").max(9_999_999_999.99, "Precio demasiado grande"))
     .transform((n) => Math.round(n * 100) / 100),
 });

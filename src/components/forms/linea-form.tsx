@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { agregarLinea } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CampoNumero } from "./campo-numero";
 import { SugerenciasDescripcion } from "./detalle-nota";
 import { Field, FormError } from "./field";
 
@@ -37,26 +38,19 @@ export function LineaForm({ notaId, descripciones }: { notaId: number; descripci
       </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field label="Cantidad" htmlFor="cantidad" errors={state?.fieldErrors?.cantidad}>
-          <Input
+          <CampoNumero
+            decimales={3}
             id="cantidad"
             name="cantidad"
-            type="number"
-            inputMode="decimal"
-            step="any"
-            min="0"
             defaultValue="1"
             required
             className="h-11"
           />
         </Field>
         <Field label="Precio c/u" htmlFor="precioUnitario" errors={state?.fieldErrors?.precioUnitario}>
-          <Input
+          <CampoNumero
             id="precioUnitario"
             name="precioUnitario"
-            type="number"
-            inputMode="decimal"
-            step="0.01"
-            min="0"
             required
             className="h-11"
           />

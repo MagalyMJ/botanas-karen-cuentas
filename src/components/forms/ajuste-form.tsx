@@ -4,8 +4,8 @@ import { useActionState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { registrarAjuste } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CampoNumero } from "./campo-numero";
 import { Field, FormError } from "./field";
 
 const opcionesDireccion = [
@@ -54,13 +54,9 @@ export function AjusteForm({ notaId }: { notaId: number }) {
         ))}
       </fieldset>
       <Field label="Diferencia" htmlFor="monto" errors={state?.fieldErrors?.monto}>
-        <Input
+        <CampoNumero
           id="monto"
           name="monto"
-          type="number"
-          inputMode="decimal"
-          step="0.01"
-          min="0.01"
           required
           className="h-11 text-lg"
         />

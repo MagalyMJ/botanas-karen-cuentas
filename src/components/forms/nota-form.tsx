@@ -5,6 +5,7 @@ import { crearNota } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AtendioSelect, type Empleado } from "./atendio-select";
+import { CampoNumero } from "./campo-numero";
 import { DetalleNota } from "./detalle-nota";
 import { Field, FormError } from "./field";
 
@@ -66,13 +67,9 @@ export function NotaForm({
         }}
       />
       <Field label="Monto" htmlFor="montoOriginal" errors={state?.fieldErrors?.montoOriginal}>
-        <Input
+        <CampoNumero
           id="montoOriginal"
           name="montoOriginal"
-          type="number"
-          inputMode="decimal"
-          step="0.01"
-          min="0.01"
           required
           value={monto}
           onChange={(e) => {
