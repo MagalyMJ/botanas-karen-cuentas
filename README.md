@@ -15,7 +15,9 @@ npx auth secret   # crea AUTH_SECRET en .env.local
 npm run dev
 ```
 
-- Entra con **demo@ejemplo.com / demo1234** (se crea junto con datos de ejemplo la primera vez).
+- Entra con **demo@ejemplo.com / demo1234** (administrador; se crea junto con datos de ejemplo la primera vez).
+  Para probar los demás roles, con la misma contraseña: `editor@ejemplo.com`, `consulta@ejemplo.com`,
+  `cliente@ejemplo.com` (ligado a Tienda Don Pepe) y `empleado@ejemplo.com` (ligado a Luis).
 - Al arrancar, el esquema de `src/db/schema.ts` se sincroniza solo: puedes cambiarlo libremente.
 - `npm run dev:fresh` borra la base local y arranca con datos de ejemplo nuevos (o `npm run db:local:reset` solo para borrarla).
 - En Vercel siempre se exige `DATABASE_URL`; el modo local nunca se usa en producción.
@@ -33,9 +35,11 @@ npm run dev
    ```
 4. Crea un usuario autorizado (no hay registro público):
    ```bash
-   npm run crear-usuario -- karen@ejemplo.com "Karen" "una-contraseña-segura"
+   npm run crear-usuario -- karen@ejemplo.com "Karen" "una-contraseña-segura" administrador
+   npm run crear-usuario -- pepe@ejemplo.com "Don Pepe" "otra-contraseña" contacto 5
    ```
-   Ejecutarlo de nuevo con el mismo correo cambia la contraseña.
+   El rol `contacto` necesita el id del contacto ligado (el número en `/contactos/<id>`).
+   Ejecutarlo de nuevo con el mismo correo cambia la contraseña, el rol y el contacto ligado.
 5. `npm run dev` y abre http://localhost:3000.
 
 ## Scripts
@@ -67,6 +71,10 @@ npm run dev
 - **Pagos atómicos:** `registrarPago` (`src/lib/actions.ts`) ejecuta una sola sentencia SQL que
   descuenta el saldo, marca la nota como `pagado` cuando el saldo llega a 0 e inserta el pago.
   No se permite pagar más que el saldo (la base de datos también lo impide con un `CHECK`).
+- **Roles** (`usuarios.rol`): `administrador` y `editor` ven y modifican todo; `consulta` ve todo
+  sin modificar; `contacto` solo ve lo suyo (el cliente, proveedor o empleado en `usuarios.contacto_id`).
+  Los permisos se revisan en el servidor (`src/lib/permisos.ts`): las consultas de `src/lib/queries.ts`
+  filtran por contacto y las Server Actions exigen `requireEditor()`.
 - **Seguridad:** `src/proxy.ts` redirige a `/login` sin sesión; además cada página (vía el layout)
   y cada Server Action verifican la sesión en el servidor.
 

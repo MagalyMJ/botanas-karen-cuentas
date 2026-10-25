@@ -7,6 +7,14 @@ import { aFechaLocal, deFechaLocal } from "@/lib/format";
 
 export const USUARIO_DEMO = { email: "demo@ejemplo.com", password: "demo1234" };
 
+// Un usuario de prueba por rol; todos con la contraseña de USUARIO_DEMO.
+const USUARIOS_PRUEBA = {
+  editor: "editor@ejemplo.com",
+  consulta: "consulta@ejemplo.com",
+  cliente: "cliente@ejemplo.com",
+  empleado: "empleado@ejemplo.com",
+};
+
 /**
  * Base de datos local para desarrollo sin Neon: Postgres (PGlite) embebido en el
  * proceso, persistido en `.pglite/`. En cada arranque sincroniza el esquema de
@@ -44,16 +52,6 @@ function haceDias(dias: number, hora: number, minuto: number) {
 }
 
 async function sembrar(db: PgliteDatabase<typeof schema>) {
-  const [usuario] = await db
-    .insert(schema.usuarios)
-    .values({
-      email: USUARIO_DEMO.email,
-      nombre: "Demo",
-      passwordHash: await bcrypt.hash(USUARIO_DEMO.password, 10),
-    })
-    .returning({ id: schema.usuarios.id });
-  const yo = { registradoPorId: usuario.id };
-
   const [contacto, proveedor, empleado, contactoPagado] = await db
     .insert(schema.contactos)
     .values([
@@ -63,6 +61,19 @@ async function sembrar(db: PgliteDatabase<typeof schema>) {
       { nombre: "Abarrotes La Esquina", tipo: "cliente", telefono: null },
     ])
     .returning({ id: schema.contactos.id });
+
+  const passwordHash = await bcrypt.hash(USUARIO_DEMO.password, 10);
+  const [usuario] = await db
+    .insert(schema.usuarios)
+    .values([
+      { email: USUARIO_DEMO.email, nombre: "Demo", rol: "administrador", passwordHash },
+      { email: USUARIOS_PRUEBA.editor, nombre: "Editor", rol: "editor", passwordHash },
+      { email: USUARIOS_PRUEBA.consulta, nombre: "Consulta", rol: "consulta", passwordHash },
+      { email: USUARIOS_PRUEBA.cliente, nombre: "Don Pepe", rol: "contacto", contactoId: contacto.id, passwordHash },
+      { email: USUARIOS_PRUEBA.empleado, nombre: "Luis", rol: "contacto", contactoId: empleado.id, passwordHash },
+    ])
+    .returning({ id: schema.usuarios.id });
+  const yo = { registradoPorId: usuario.id };
   const atendioLuis = { ...yo, atendidoPorId: empleado.id };
 
   const [notaCliente, , , notaPagada] = await db
@@ -82,6 +93,7 @@ async function sembrar(db: PgliteDatabase<typeof schema>) {
   ]);
 
   console.log(
-    `[db local] datos de ejemplo creados. Usuario: ${USUARIO_DEMO.email} / ${USUARIO_DEMO.password}`,
+    `[db local] datos de ejemplo creados. Administrador: ${USUARIO_DEMO.email} / ${USUARIO_DEMO.password}` +
+      ` (también ${Object.values(USUARIOS_PRUEBA).join(", ")}, misma contraseña)`,
   );
 }

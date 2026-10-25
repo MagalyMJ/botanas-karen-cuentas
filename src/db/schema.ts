@@ -19,13 +19,9 @@ export const tipoContacto = pgEnum("tipo_contacto", ["cliente", "proveedor", "em
 
 export const tipoNota = pgEnum("tipo_nota", ["por_cobrar", "por_pagar"]);
 
-export const usuarios = pgTable("usuarios", {
-  id: serial("id").primaryKey(),
-  email: text("email").notNull().unique(),
-  nombre: text("nombre").notNull(),
-  passwordHash: text("password_hash").notNull(),
-  creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
-});
+// administrador y editor: ven y modifican todo. consulta: ve todo, sin modificar.
+// contacto: solo ve lo suyo (cliente, proveedor o empleado ligado en contacto_id).
+export const rolUsuario = pgEnum("rol_usuario", ["administrador", "editor", "consulta", "contacto"]);
 
 export const contactos = pgTable("contactos", {
   id: serial("id").primaryKey(),
@@ -34,6 +30,23 @@ export const contactos = pgTable("contactos", {
   telefono: text("telefono"),
   creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const usuarios = pgTable(
+  "usuarios",
+  {
+    id: serial("id").primaryKey(),
+    email: text("email").notNull().unique(),
+    nombre: text("nombre").notNull(),
+    passwordHash: text("password_hash").notNull(),
+    rol: rolUsuario("rol").notNull().default("consulta"),
+    contactoId: integer("contacto_id").references(() => contactos.id, { onDelete: "restrict" }),
+    creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // El rol contacto siempre está ligado a un contacto; los demás roles nunca.
+    check("usuarios_contacto_rol", sql`(${t.rol} = 'contacto') = (${t.contactoId} is not null)`),
+  ],
+);
 
 export const notas = pgTable(
   "notas",
@@ -93,6 +106,7 @@ export const pagos = pgTable(
 export type TipoContacto = (typeof tipoContacto.enumValues)[number];
 export type TipoNota = (typeof tipoNota.enumValues)[number];
 export type EstadoNota = (typeof estadoNota.enumValues)[number];
+export type RolUsuario = (typeof rolUsuario.enumValues)[number];
 export type Contacto = typeof contactos.$inferSelect;
 export type Nota = typeof notas.$inferSelect;
 export type Pago = typeof pagos.$inferSelect;

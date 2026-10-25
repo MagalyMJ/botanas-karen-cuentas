@@ -6,7 +6,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { AuthError } from "next-auth";
 import { db } from "@/db";
 import { contactos, notas } from "@/db/schema";
-import { requireUser, signIn, signOut } from "@/auth";
+import { requireEditor, signIn, signOut } from "@/auth";
 import {
   contactoSchema,
   erroresDeCampo,
@@ -34,7 +34,7 @@ export async function logout() {
 }
 
 export async function crearContacto(_prev: FormState, formData: FormData): Promise<FormState> {
-  await requireUser();
+  await requireEditor();
   const parsed = contactoSchema.safeParse({
     nombre: formData.get("nombre"),
     tipo: formData.get("tipo"),
@@ -62,7 +62,7 @@ export async function crearNota(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const usuario = await requireUser();
+  const usuario = await requireEditor();
   const parsed = notaSchema.safeParse({
     atendidoPorId: formData.get("atendidoPorId") ?? "",
     tipo: formData.get("tipo"),
@@ -81,7 +81,7 @@ export async function crearNota(
       montoOriginal: parsed.data.montoOriginal,
       saldoPendiente: parsed.data.montoOriginal,
       fechaInicio: parsed.data.fechaInicio,
-      registradoPorId: Number(usuario.id),
+      registradoPorId: usuario.id,
       atendidoPorId: parsed.data.atendidoPorId,
     })
     .returning({ id: notas.id });
@@ -95,7 +95,7 @@ export async function registrarPago(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const usuario = await requireUser();
+  const usuario = await requireEditor();
   const parsed = pagoSchema.safeParse({
     atendidoPorId: formData.get("atendidoPorId") ?? "",
     montoPagado: formData.get("montoPagado"),
@@ -126,7 +126,7 @@ export async function registrarPago(
     ), ins AS (
       INSERT INTO pagos (nota_id, monto_pagado, fecha_pago, comentario, registrado_por_id, atendido_por_id)
       SELECT id, ${monto}::numeric, ${fechaPago.toISOString()}::timestamptz, ${comentario},
-             ${Number(usuario.id)}::int, ${atendidoPorId}::int
+             ${usuario.id}::int, ${atendidoPorId}::int
       FROM upd
       RETURNING id
     )

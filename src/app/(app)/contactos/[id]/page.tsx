@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRightIcon, PhoneIcon, PlusIcon } from "lucide-react";
+import { requireUser } from "@/auth";
 import { getContacto } from "@/lib/queries";
+import { puedeEditar } from "@/lib/permisos";
 import { formatoFecha, formatoMoneda } from "@/lib/format";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +15,7 @@ import { TipoContactoBadge } from "@/components/tipo-contacto";
 export default async function ContactoPage({ params }: PageProps<"/contactos/[id]">) {
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
-  const contacto = await getContacto(id);
+  const [contacto, usuario] = await Promise.all([getContacto(id), requireUser()]);
   if (!contacto) notFound();
 
   const activos = contacto.notas.filter((p) => p.estado === "activo");
@@ -29,10 +31,12 @@ export default async function ContactoPage({ params }: PageProps<"/contactos/[id
         title={contacto.nombre}
         back={{ href: "/contactos", label: "Contactos" }}
         action={
-          <Link href={`/contactos/${contacto.id}/notas/nueva`} className={buttonVariants()}>
-            <PlusIcon />
-            Nota
-          </Link>
+          puedeEditar(usuario.rol) && (
+            <Link href={`/contactos/${contacto.id}/notas/nueva`} className={buttonVariants()}>
+              <PlusIcon />
+              Nota
+            </Link>
+          )
         }
       />
       <div className="mb-4 flex flex-wrap items-center gap-3">

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ChevronRightIcon, PlusIcon, SearchIcon } from "lucide-react";
+import { requireUser } from "@/auth";
 import { getContactos } from "@/lib/queries";
+import { puedeEditar } from "@/lib/permisos";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,7 +15,7 @@ export default async function ContactosPage({ searchParams }: PageProps<"/contac
   const params = await searchParams;
   const busqueda = typeof params.q === "string" ? params.q : "";
   const tipo = esTipoContacto(params.tipo) ? params.tipo : undefined;
-  const contactos = await getContactos({ busqueda, tipo });
+  const [contactos, usuario] = await Promise.all([getContactos({ busqueda, tipo }), requireUser()]);
 
   const hrefFiltro = (t?: string) => {
     const sp = new URLSearchParams();
@@ -29,10 +31,12 @@ export default async function ContactosPage({ searchParams }: PageProps<"/contac
       <PageHeader
         title="Contactos"
         action={
-          <Link href={tipo ? `/contactos/nuevo?tipo=${tipo}` : "/contactos/nuevo"} className={buttonVariants()}>
-            <PlusIcon />
-            Nuevo
-          </Link>
+          puedeEditar(usuario.rol) && (
+            <Link href={tipo ? `/contactos/nuevo?tipo=${tipo}` : "/contactos/nuevo"} className={buttonVariants()}>
+              <PlusIcon />
+              Nuevo
+            </Link>
+          )
         }
       />
       <form className="relative mb-3">

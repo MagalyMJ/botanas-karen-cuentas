@@ -3,12 +3,22 @@ import { and, desc, eq, gte, ilike, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { alias } from "drizzle-orm/pg-core";
 import { contactos, pagos, notas, usuarios, type TipoContacto } from "@/db/schema";
+import { requireUser } from "@/auth";
 import { ZONA_HORARIA } from "@/lib/format";
+import { contactoVisible } from "@/lib/permisos";
+
+// Todas las consultas filtran según el usuario de la sesión: un usuario con rol
+// "contacto" solo obtiene sus propios datos, aunque cambie la dirección de la página.
+async function alcance() {
+  return contactoVisible(await requireUser());
+}
 
 // Saldo con signo: positivo = nos deben, negativo = debemos.
 const saldoConSigno = sql`case when ${notas.tipo} = 'por_cobrar' then ${notas.saldoPendiente} else -${notas.saldoPendiente} end`;
 
 export async function getResumen() {
+  const soloContacto = await alcance();
+  const deContacto = soloContacto === null ? undefined : eq(notas.contactoId, soloContacto);
   const [notasRes, pagosRes, contactosRes] = await Promise.all([
     db
       .select({
@@ -17,7 +27,7 @@ export async function getResumen() {
         activos: sql<number>`count(*)`.mapWith(Number),
       })
       .from(notas)
-      .where(eq(notas.estado, "activo")),
+      .where(and(eq(notas.estado, "activo"), deContacto)),
     db
       .select({
         cobradoMes: sql<number>`coalesce(sum(${pagos.montoPagado}), 0)`.mapWith(Number),
@@ -28,8 +38,11 @@ export async function getResumen() {
             pagos.fechaPago,
             // Inicio del mes en curso según la hora del negocio.
             sql`date_trunc('month', now() at time zone ${ZONA_HORARIA}) at time zone ${ZONA_HORARIA}`,
-          ), eq(notas.tipo, "por_cobrar"))),
-    db.select({ total: sql<number>`count(*)`.mapWith(Number) }).from(contactos),
+          ), eq(notas.tipo, "por_cobrar"), deContacto)),
+    db
+      .select({ total: sql<number>`count(*)`.mapWith(Number) })
+      .from(contactos)
+      .where(soloContacto === null ? undefined : eq(contactos.id, soloContacto)),
   ]);
   return {
     porCobrar: notasRes[0].porCobrar,
@@ -41,6 +54,7 @@ export async function getResumen() {
 }
 
 export async function getPagosRecientes(limite = 10) {
+  const soloContacto = await alcance();
   return db
     .select({
       id: pagos.id,
@@ -53,6 +67,7 @@ export async function getPagosRecientes(limite = 10) {
     .from(pagos)
     .innerJoin(notas, eq(pagos.notaId, notas.id))
     .innerJoin(contactos, eq(notas.contactoId, contactos.id))
+    .where(soloContacto === null ? undefined : eq(notas.contactoId, soloContacto))
     .orderBy(desc(pagos.fechaPago), desc(pagos.id))
     .limit(limite);
 }
@@ -65,6 +80,7 @@ export async function getContactos({
   soloConSaldo = false,
   limite,
 }: { busqueda?: string; tipo?: TipoContacto; soloConSaldo?: boolean; limite?: number } = {}) {
+  const soloContacto = await alcance();
   const q = busqueda?.trim();
   const query = db
     .select({
@@ -81,6 +97,7 @@ export async function getContactos({
       and(
         q ? ilike(contactos.nombre, `%${q}%`) : undefined,
         tipo ? eq(contactos.tipo, tipo) : undefined,
+        soloContacto === null ? undefined : eq(contactos.id, soloContacto),
       ),
     )
     .groupBy(contactos.id)
@@ -92,6 +109,8 @@ export async function getContactos({
 }
 
 export async function getContacto(id: number) {
+  const soloContacto = await alcance();
+  if (soloContacto !== null && soloContacto !== id) return null;
   const [contacto] = await db.select().from(contactos).where(eq(contactos.id, id)).limit(1);
   if (!contacto) return null;
   const notasContacto = await db
@@ -102,7 +121,9 @@ export async function getContacto(id: number) {
   return { ...contacto, notas: notasContacto };
 }
 
+/** Para el selector "Atendió"; solo lo usan formularios de captura. */
 export async function getEmpleados() {
+  if ((await alcance()) !== null) return [];
   return db
     .select({ id: contactos.id, nombre: contactos.nombre })
     .from(contactos)
@@ -113,6 +134,7 @@ export async function getEmpleados() {
 const atendio = alias(contactos, "atendio");
 
 export async function getNota(id: number) {
+  const soloContacto = await alcance();
   const [row] = await db
     .select({
       nota: notas,
@@ -124,7 +146,7 @@ export async function getNota(id: number) {
     .innerJoin(contactos, eq(notas.contactoId, contactos.id))
     .innerJoin(usuarios, eq(notas.registradoPorId, usuarios.id))
     .leftJoin(atendio, eq(notas.atendidoPorId, atendio.id))
-    .where(eq(notas.id, id))
+    .where(and(eq(notas.id, id), soloContacto === null ? undefined : eq(notas.contactoId, soloContacto)))
     .limit(1);
   if (!row) return null;
   const pagosNota = await db

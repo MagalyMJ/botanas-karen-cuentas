@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/auth";
+import { puedeEditar } from "@/lib/permisos";
 import { getContacto, getEmpleados } from "@/lib/queries";
 import { ahoraLocal } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +17,7 @@ export default async function NuevaNotaPage({
     getEmpleados(),
     requireUser(),
   ]);
-  if (!contacto) notFound();
+  if (!contacto || !puedeEditar(usuario.rol)) notFound();
 
   return (
     <>
@@ -27,7 +28,7 @@ export default async function NuevaNotaPage({
             contactoId={id}
             fechaHoy={ahoraLocal()}
             empleados={empleados}
-            usuarioNombre={usuario.name ?? "yo"}
+            usuarioNombre={usuario.nombre}
           />
         </CardContent>
       </Card>

@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/auth";
+import { puedeEditar } from "@/lib/permisos";
 import { getEmpleados, getNota } from "@/lib/queries";
 import { ahoraLocal, formatoFecha, formatoMoneda, textoResponsable } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -50,7 +51,7 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
         </CardContent>
       </Card>
 
-      {nota.estado === "activo" && (
+      {nota.estado === "activo" && puedeEditar(usuario.rol) && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>
@@ -63,7 +64,7 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
               saldoPendiente={nota.saldoPendiente}
               fechaHoy={ahoraLocal()}
               empleados={empleados}
-              usuarioNombre={usuario.name ?? "yo"}
+              usuarioNombre={usuario.nombre}
             />
           </CardContent>
         </Card>
