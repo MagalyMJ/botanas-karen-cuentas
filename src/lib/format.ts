@@ -73,3 +73,8 @@ const cantidad = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 3 });
 export function formatoCantidad(n: number) {
   return cantidad.format(n);
 }
+
+/** Monto vigente de una nota: el original más sus correcciones. */
+export function montoVigente(nota: { montoOriginal: number; ajustesTotal: number }) {
+  return Math.round((nota.montoOriginal + nota.ajustesTotal) * 100) / 100;
+}

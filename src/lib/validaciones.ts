@@ -64,6 +64,12 @@ export const lineaSchema = z.object({
 
 export type Linea = z.infer<typeof lineaSchema>;
 
+export const ajusteSchema = z.object({
+  direccion: z.enum(["aumentar", "disminuir"], { error: "Elige si el monto sube o baja" }),
+  monto,
+  motivo: z.string().trim().min(1, "Escribe el motivo de la corrección").max(500),
+});
+
 export type FormState = {
   error?: string;
   fieldErrors?: Record<string, string[] | undefined>;

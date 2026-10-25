@@ -64,13 +64,20 @@ npm run dev
 ## Lógica de negocio
 
 - **Sin intereses:** al crear una nota, `saldo_pendiente = monto_original`.
-- **Tablas:** `contactos` (tipo `cliente`, `proveedor` o `empleado`), `notas` y `pagos`.
+- **Tablas:** `usuarios`, `contactos` (tipo `cliente`, `proveedor` o `empleado`), `notas`, `pagos`,
+  `nota_lineas` y `ajustes`.
 - **Tipo de nota:** `por_cobrar` (el contacto nos debe) o `por_pagar` (le debemos, p. ej. un proveedor).
   Los montos de notas y pagos siempre son positivos; el **total por contacto** es
   lo que nos deben menos lo que debemos, y puede ser negativo.
 - **Pagos atómicos:** `registrarPago` (`src/lib/actions.ts`) ejecuta una sola sentencia SQL que
   descuenta el saldo, marca la nota como `pagado` cuando el saldo llega a 0 e inserta el pago.
   No se permite pagar más que el saldo (la base de datos también lo impide con un `CHECK`).
+- **Detalle** (`nota_lineas`): renglones opcionales de texto libre (descripción, cantidad, precio).
+  Son informativos: no cambian el monto ni el saldo, y se pueden agregar después de crear la nota.
+- **Correcciones** (`ajustes`): la nota original nunca se edita. Una corrección guarda la diferencia
+  (positiva o negativa) y su motivo, y en la misma sentencia mueve `saldo_pendiente` y
+  `ajustes_total`. Monto vigente = `monto_original + ajustes_total`. Una corrección no puede dejar
+  el saldo en negativo; si sube el monto de una nota pagada, la reabre.
 - **Roles** (`usuarios.rol`): `administrador` y `editor` ven y modifican todo; `consulta` ve todo
   sin modificar; `contacto` solo ve lo suyo (el cliente, proveedor o empleado en `usuarios.contacto_id`).
   Los permisos se revisan en el servidor (`src/lib/permisos.ts`): las consultas de `src/lib/queries.ts`

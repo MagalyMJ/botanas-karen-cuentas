@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { contactos, notaLineas, notas } from "@/db/schema";
 import { requireEditor, signIn, signOut } from "@/auth";
 import {
+  ajusteSchema,
   contactoSchema,
   erroresDeCampo,
   lineaSchema,
@@ -184,6 +185,64 @@ export async function registrarPago(
       };
     }
     return { error: "La nota no existe o ya está pagada." };
+  }
+
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+export async function registrarAjuste(
+  notaId: number,
+  _prev: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const usuario = await requireEditor();
+  const parsed = ajusteSchema.safeParse({
+    direccion: formData.get("direccion"),
+    monto: formData.get("monto"),
+    motivo: formData.get("motivo") ?? "",
+  });
+  if (!parsed.success) return erroresDeCampo(parsed.error);
+
+  const { direccion, monto, motivo } = parsed.data;
+  const ajuste = (direccion === "aumentar" ? monto : -monto).toFixed(2);
+
+  // Una sola sentencia SQL = atómica, igual que registrarPago: mueve el saldo y el total
+  // de correcciones de la nota e inserta la corrección. Una corrección que sube el monto
+  // reabre una nota pagada; una que lo baja no puede dejar el saldo en negativo.
+  const result = await db.execute<{ id: number }>(sql`
+    WITH upd AS (
+      UPDATE notas
+      SET saldo_pendiente = saldo_pendiente + ${ajuste}::numeric,
+          ajustes_total = ajustes_total + ${ajuste}::numeric,
+          estado = CASE
+            WHEN saldo_pendiente + ${ajuste}::numeric = 0 THEN 'pagado'::estado_nota
+            ELSE 'activo'::estado_nota
+          END
+      WHERE id = ${notaId} AND saldo_pendiente + ${ajuste}::numeric >= 0
+      RETURNING id
+    ), ins AS (
+      INSERT INTO ajustes (nota_id, monto, motivo, registrado_por_id)
+      SELECT id, ${ajuste}::numeric, ${motivo}, ${usuario.id}::int FROM upd
+      RETURNING id
+    )
+    SELECT ins.id FROM upd, ins
+  `);
+
+  if (result.rows.length === 0) {
+    const [actual] = await db
+      .select({ saldo: notas.saldoPendiente })
+      .from(notas)
+      .where(eq(notas.id, notaId));
+    if (!actual) return { error: "La nota no existe." };
+    return {
+      fieldErrors: {
+        monto: [
+          `No puede bajar más que el saldo pendiente (${formatoMoneda(actual.saldo)}). ` +
+            "Si ya se pagó de más, registra una nota aparte por la diferencia.",
+        ],
+      },
+    };
   }
 
   revalidatePath("/", "layout");

@@ -4,7 +4,7 @@ import { ChevronRightIcon, PhoneIcon, PlusIcon } from "lucide-react";
 import { requireUser } from "@/auth";
 import { getContacto } from "@/lib/queries";
 import { puedeEditar } from "@/lib/permisos";
-import { formatoFecha, formatoMoneda } from "@/lib/format";
+import { formatoFecha, formatoMoneda, montoVigente } from "@/lib/format";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NotaBadge } from "@/components/estado-badge";
@@ -78,7 +78,7 @@ export default async function ContactoPage({ params }: PageProps<"/contactos/[id
                   <Link href={`/notas/${p.id}`} className="flex items-center gap-3 py-3">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium tabular-nums">{formatoMoneda(p.montoOriginal)}</span>
+                        <span className="font-medium tabular-nums">{formatoMoneda(montoVigente(p))}</span>
                         <NotaBadge tipo={p.tipo} estado={p.estado} />
                       </div>
                       <p className="text-xs text-muted-foreground">{formatoFecha(p.fechaInicio)}</p>

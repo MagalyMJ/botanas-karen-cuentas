@@ -2,7 +2,7 @@ import "server-only";
 import { and, desc, eq, gte, ilike, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { alias } from "drizzle-orm/pg-core";
-import { contactos, notaLineas, pagos, notas, usuarios, type TipoContacto } from "@/db/schema";
+import { ajustes, contactos, notaLineas, pagos, notas, usuarios, type TipoContacto } from "@/db/schema";
 import { requireUser } from "@/auth";
 import { ZONA_HORARIA } from "@/lib/format";
 import { contactoVisible } from "@/lib/permisos";
@@ -149,7 +149,7 @@ export async function getNota(id: number) {
     .where(and(eq(notas.id, id), soloContacto === null ? undefined : eq(notas.contactoId, soloContacto)))
     .limit(1);
   if (!row) return null;
-  const [pagosNota, lineas] = await Promise.all([
+  const [pagosNota, lineas, ajustesNota] = await Promise.all([
     db
       .select({
         id: pagos.id,
@@ -174,6 +174,18 @@ export async function getNota(id: number) {
       .from(notaLineas)
       .where(eq(notaLineas.notaId, id))
       .orderBy(notaLineas.id),
+    db
+      .select({
+        id: ajustes.id,
+        monto: ajustes.monto,
+        motivo: ajustes.motivo,
+        creadoEn: ajustes.creadoEn,
+        registradoPor: usuarios.nombre,
+      })
+      .from(ajustes)
+      .innerJoin(usuarios, eq(ajustes.registradoPorId, usuarios.id))
+      .where(eq(ajustes.notaId, id))
+      .orderBy(desc(ajustes.creadoEn), desc(ajustes.id)),
   ]);
   return {
     ...row.nota,
@@ -182,6 +194,7 @@ export async function getNota(id: number) {
     atendidoPor: row.atendidoPor,
     pagos: pagosNota,
     lineas,
+    ajustes: ajustesNota,
   };
 }
 

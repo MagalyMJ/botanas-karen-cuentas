@@ -58,6 +58,9 @@ export const notas = pgTable(
     tipo: tipoNota("tipo").notNull().default("por_cobrar"),
     montoOriginal: numeric("monto_original", { precision: 12, scale: 2, mode: "number" }).notNull(),
     saldoPendiente: numeric("saldo_pendiente", { precision: 12, scale: 2, mode: "number" }).notNull(),
+    // Suma de las correcciones (tabla ajustes). El monto original nunca cambia; el monto
+    // vigente es monto_original + ajustes_total.
+    ajustesTotal: numeric("ajustes_total", { precision: 12, scale: 2, mode: "number" }).notNull().default(0),
     estado: estadoNota("estado").notNull().default("activo"),
     fechaInicio: timestamp("fecha_inicio", { withTimezone: true }).notNull().defaultNow(),
     // Usuario que capturó el registro (automático) y empleado que atendió (opcional;
@@ -74,7 +77,7 @@ export const notas = pgTable(
     // Cada nota nunca queda negativa; solo el total por contacto puede serlo.
     check(
       "notas_saldo_valido",
-      sql`${t.saldoPendiente} >= 0 and ${t.saldoPendiente} <= ${t.montoOriginal}`,
+      sql`${t.saldoPendiente} >= 0 and ${t.saldoPendiente} <= ${t.montoOriginal} + ${t.ajustesTotal}`,
     ),
   ],
 );
@@ -100,6 +103,28 @@ export const pagos = pgTable(
   (t) => [
     index("pagos_nota_idx").on(t.notaId),
     check("pagos_monto_positivo", sql`${t.montoPagado} > 0`),
+  ],
+);
+
+// Correcciones de monto de una nota (p. ej. un precio mal capturado). Positivo = la nota
+// sube, negativo = baja. Se suman al saldo de la nota; la nota original no se modifica.
+export const ajustes = pgTable(
+  "ajustes",
+  {
+    id: serial("id").primaryKey(),
+    notaId: integer("nota_id")
+      .notNull()
+      .references(() => notas.id, { onDelete: "restrict" }),
+    monto: numeric("monto", { precision: 12, scale: 2, mode: "number" }).notNull(),
+    motivo: text("motivo").notNull(),
+    registradoPorId: integer("registrado_por_id")
+      .notNull()
+      .references(() => usuarios.id, { onDelete: "restrict" }),
+    creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("ajustes_nota_idx").on(t.notaId),
+    check("ajustes_monto_no_cero", sql`${t.monto} <> 0`),
   ],
 );
 
@@ -135,3 +160,4 @@ export type Contacto = typeof contactos.$inferSelect;
 export type Nota = typeof notas.$inferSelect;
 export type Pago = typeof pagos.$inferSelect;
 export type NotaLinea = typeof notaLineas.$inferSelect;
+export type Ajuste = typeof ajustes.$inferSelect;

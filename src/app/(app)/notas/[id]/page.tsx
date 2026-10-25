@@ -10,6 +10,7 @@ import {
   formatoFecha,
   formatoMoneda,
   importeLinea,
+  montoVigente,
   textoResponsable,
   totalLineas,
 } from "@/lib/format";
@@ -19,6 +20,12 @@ import { NotaBadge } from "@/components/estado-badge";
 import { PageHeader } from "@/components/page-header";
 import { PagoForm } from "@/components/forms/pago-form";
 import { LineaForm } from "@/components/forms/linea-form";
+import { AjusteForm } from "@/components/forms/ajuste-form";
+
+/** "+$50.00" o "−$30.00". */
+function conSigno(monto: number) {
+  return `${monto > 0 ? "+" : "−"}${formatoMoneda(Math.abs(monto))}`;
+}
 
 export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
   const id = Number((await params).id);
@@ -33,8 +40,10 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
   const editor = puedeEditar(usuario.rol);
   const sumaDetalle = totalLineas(nota.lineas);
 
-  const pagado = nota.montoOriginal - Math.max(nota.saldoPendiente, 0);
-  const progreso = Math.min(100, Math.round((pagado / nota.montoOriginal) * 100));
+  const monto = montoVigente(nota);
+  const pagado = monto - Math.max(nota.saldoPendiente, 0);
+  // Una corrección puede dejar el monto en 0 (nada que pagar): cuenta como pagada.
+  const progreso = monto > 0 ? Math.min(100, Math.round((pagado / monto) * 100)) : 100;
 
   return (
     <>
@@ -49,7 +58,12 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-muted-foreground">Monto de la nota</p>
-              <p className="text-lg font-semibold tabular-nums">{formatoMoneda(nota.montoOriginal)}</p>
+              <p className="text-lg font-semibold tabular-nums">{formatoMoneda(monto)}</p>
+              {nota.ajustesTotal !== 0 && (
+                <p className="text-xs text-muted-foreground tabular-nums">
+                  Original {formatoMoneda(nota.montoOriginal)} · {conSigno(nota.ajustesTotal)}
+                </p>
+              )}
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Saldo pendiente</p>
@@ -104,10 +118,10 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
                   <span className="text-muted-foreground">Suma del detalle</span>
                   <span className="font-medium tabular-nums">{formatoMoneda(sumaDetalle)}</span>
                 </div>
-                {sumaDetalle !== nota.montoOriginal && (
+                {sumaDetalle !== monto && (
                   <p role="status" className="mt-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
                     El detalle suma {formatoMoneda(sumaDetalle)}, pero la nota es de{" "}
-                    {formatoMoneda(nota.montoOriginal)}.
+                    {formatoMoneda(monto)}.
                   </p>
                 )}
               </div>
@@ -161,6 +175,43 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
           )}
         </CardContent>
       </Card>
+
+      {(nota.ajustes.length > 0 || editor) && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Correcciones</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {nota.ajustes.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                Sin correcciones. Si el monto quedó mal, corrígelo aquí: la nota original se conserva.
+              </p>
+            ) : (
+              <ul className="divide-y">
+                {nota.ajustes.map((a) => (
+                  <li key={a.id} className="flex items-start justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm break-words">{a.motivo}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatoFecha(a.creadoEn)} · registró {a.registradoPor}
+                      </p>
+                    </div>
+                    <span className="font-medium tabular-nums">{conSigno(a.monto)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {editor && (
+              <details className="rounded-lg border">
+                <summary className="cursor-pointer px-3 py-2.5 text-sm font-medium">Corregir monto</summary>
+                <div className="border-t p-3">
+                  <AjusteForm notaId={nota.id} />
+                </div>
+              </details>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </>
   );
 }
