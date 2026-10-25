@@ -55,7 +55,7 @@ export default async function ContactoPage({ params }: PageProps<"/contactos/[id
       <Card>
         <CardContent>
           <p className="text-xs text-muted-foreground">Total ({descripcionBalance(balance).toLowerCase()})</p>
-          <Balance valor={balance} className="mt-1 block text-3xl font-semibold" />
+          <Balance valor={balance} className="mt-1 block text-3xl" />
           {meDebe > 0 && leDebo > 0 && (
             <p className="mt-2 text-xs text-muted-foreground">
               Me debe {formatoMoneda(meDebe)} · Le debo {formatoMoneda(leDebo)}

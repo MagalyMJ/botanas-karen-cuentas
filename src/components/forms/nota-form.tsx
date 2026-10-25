@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { crearNota } from "@/lib/actions";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AtendioSelect, type Empleado } from "./atendio-select";
@@ -9,9 +10,22 @@ import { CampoNumero } from "./campo-numero";
 import { DetalleNota } from "./detalle-nota";
 import { Field, FormError } from "./field";
 
+// Mismos colores que los chips de la nota: "Me debe" salvia, "Le debo" terracota.
 const opcionesTipo = [
-  { value: "por_cobrar", label: "Me debe", ayuda: "Le presté o le vendí" },
-  { value: "por_pagar", label: "Le debo", ayuda: "Me prestó o le compré" },
+  {
+    value: "por_cobrar",
+    label: "Me debe",
+    ayuda: "Le presté o le vendí",
+    elegida: "has-checked:border-salvia has-checked:bg-salvia/10",
+    titulo: "group-has-checked:text-salvia",
+  },
+  {
+    value: "por_pagar",
+    label: "Le debo",
+    ayuda: "Me prestó o le compré",
+    elegida: "has-checked:border-terracota has-checked:bg-terracota/10",
+    titulo: "group-has-checked:text-terracota",
+  },
 ] as const;
 
 export function NotaForm({
@@ -39,7 +53,7 @@ export function NotaForm({
           {opcionesTipo.map((o) => (
             <label
               key={o.value}
-              className="cursor-pointer rounded-lg border p-3 has-checked:border-primary has-checked:bg-muted"
+              className={cn("group cursor-pointer rounded-lg border bg-background p-3", o.elegida)}
             >
               <input
                 type="radio"
@@ -48,7 +62,7 @@ export function NotaForm({
                 defaultChecked={o.value === "por_cobrar"}
                 className="sr-only"
               />
-              <span className="block font-medium">{o.label}</span>
+              <span className={cn("block font-semibold", o.titulo)}>{o.label}</span>
               <span className="block text-xs text-muted-foreground">{o.ayuda}</span>
             </label>
           ))}

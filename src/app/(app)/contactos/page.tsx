@@ -90,7 +90,7 @@ export default async function ContactosPage({ searchParams }: PageProps<"/contac
                           : `${c.notasActivas} nota${c.notasActivas > 1 ? "s" : ""} activa${c.notasActivas > 1 ? "s" : ""} · ${descripcionBalance(c.balance)}`}
                       </p>
                     </div>
-                    {c.balance !== 0 && <Balance valor={c.balance} className="font-medium" />}
+                    {c.balance !== 0 && <Balance valor={c.balance} />}
                     <ChevronRightIcon className="size-4 text-muted-foreground" />
                   </Link>
                 </li>

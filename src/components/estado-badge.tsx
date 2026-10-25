@@ -13,9 +13,10 @@ export function NotaBadge({ tipo, estado }: { tipo: TipoNota; estado: EstadoNota
     <Badge
       variant="outline"
       className={
+        // Texto y orilla del mismo color; fondo suave del mismo tono.
         tipo === "por_cobrar"
-          ? "border-emerald-600/30 text-emerald-700 dark:text-emerald-400"
-          : "border-amber-600/30 text-amber-700 dark:text-amber-400"
+          ? "border-salvia bg-salvia/10 font-semibold text-salvia"
+          : "border-terracota bg-terracota/10 font-semibold text-terracota"
       }
     >
       {etiquetaTipo[tipo]}

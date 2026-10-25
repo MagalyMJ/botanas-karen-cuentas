@@ -7,10 +7,11 @@ import { agregarLinea } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CampoNumero } from "./campo-numero";
+import { columnasAgregarRenglon } from "./detalle-columnas";
 import { SugerenciasDescripcion } from "./detalle-nota";
-import { Field, FormError } from "./field";
+import { FormError } from "./field";
 
-/** Agrega un renglón de detalle a una nota existente. */
+/** Agrega un renglón de detalle a una nota existente, en la misma línea que la lista. */
 export function LineaForm({ notaId, descripciones }: { notaId: number; descripciones: string[] }) {
   const [state, action, pending] = useActionState(agregarLinea.bind(null, notaId), undefined);
   const formRef = useRef<HTMLFormElement>(null);
@@ -22,45 +23,50 @@ export function LineaForm({ notaId, descripciones }: { notaId: number; descripci
     }
   }, [state]);
 
+  const errores = state?.fieldErrors
+    ? [state.fieldErrors.cantidad, state.fieldErrors.descripcion, state.fieldErrors.precioUnitario].flat()
+    : [];
+
   return (
-    <form ref={formRef} action={action} className="grid gap-3">
+    <form ref={formRef} action={action} className="grid gap-2">
       <SugerenciasDescripcion id="descripciones-usadas" descripciones={descripciones} />
-      <Field label="¿Qué fue?" htmlFor="descripcion" errors={state?.fieldErrors?.descripcion}>
+      <div className={columnasAgregarRenglon}>
+        <CampoNumero
+          decimales={3}
+          name="cantidad"
+          aria-label="Cantidad"
+          defaultValue="1"
+          required
+          className="h-10 text-right"
+        />
         <Input
-          id="descripcion"
           name="descripcion"
-          placeholder="Ej. Cacahuate japonés 1 kg"
+          aria-label="Descripción"
+          placeholder="Agregar renglón…"
           list="descripciones-usadas"
           maxLength={200}
           required
-          className="h-11"
+          className="h-10"
         />
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Cantidad" htmlFor="cantidad" errors={state?.fieldErrors?.cantidad}>
-          <CampoNumero
-            decimales={3}
-            id="cantidad"
-            name="cantidad"
-            defaultValue="1"
-            required
-            className="h-11"
-          />
-        </Field>
-        <Field label="Precio c/u" htmlFor="precioUnitario" errors={state?.fieldErrors?.precioUnitario}>
-          <CampoNumero
-            id="precioUnitario"
-            name="precioUnitario"
-            required
-            className="h-11"
-          />
-        </Field>
+        <CampoNumero
+          name="precioUnitario"
+          aria-label="Precio c/u"
+          placeholder="Precio c/u"
+          required
+          className="h-10 text-right"
+        />
+        <Button type="submit" size="icon" aria-label="Agregar renglón" disabled={pending} className="size-10">
+          <PlusIcon />
+        </Button>
       </div>
+      {errores.map((e) =>
+        e ? (
+          <p key={e} className="text-sm text-destructive">
+            {e}
+          </p>
+        ) : null,
+      )}
       <FormError message={state?.error} />
-      <Button type="submit" variant="outline" className="h-11" disabled={pending}>
-        <PlusIcon />
-        {pending ? "Agregando…" : "Agregar renglón"}
-      </Button>
     </form>
   );
 }

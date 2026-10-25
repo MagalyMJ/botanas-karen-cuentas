@@ -26,7 +26,7 @@ export default async function InicioPage() {
           <p className="text-xs text-muted-foreground">
             Balance neto{neto !== 0 && (neto > 0 ? " · a tu favor" : " · en contra")}
           </p>
-          <Balance valor={neto} className="mt-1 block text-3xl font-semibold" />
+          <Balance valor={neto} className="mt-1 block text-3xl" />
           <dl className="mt-3 grid grid-cols-3 gap-2 border-t pt-3 text-xs">
             <div>
               <dt className="text-muted-foreground">Me deben</dt>
@@ -51,7 +51,7 @@ export default async function InicioPage() {
       ) : (
         <section className="mt-6">
           <div className="mb-2 flex items-center justify-between">
-            <h2 className="font-semibold">Saldos pendientes</h2>
+            <h2 className="font-bold text-pizarra">Saldos pendientes</h2>
             <Link
               href="/contactos"
               className="flex items-center text-sm text-muted-foreground hover:text-foreground"
@@ -69,7 +69,7 @@ export default async function InicioPage() {
                     <p className="truncate font-medium">{c.nombre}</p>
                     <div>
                       <p className="text-xs text-muted-foreground">{descripcionBalance(c.balance)}</p>
-                      <Balance valor={c.balance} sinSigno className="block text-lg font-semibold" />
+                      <Balance valor={c.balance} sinSigno className="block text-lg" />
                     </div>
                   </CardContent>
                 </Card>

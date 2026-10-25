@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useEffectEvent, useRef } from "react";
 import { toast } from "sonner";
 import { registrarAjuste } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
@@ -14,15 +14,18 @@ const opcionesDireccion = [
 ] as const;
 
 /** Corrige el monto de una nota sin modificarla: registra la diferencia y su motivo. */
-export function AjusteForm({ notaId }: { notaId: number }) {
+export function AjusteForm({ notaId, onGuardado }: { notaId: number; onGuardado?: () => void }) {
   const [state, action, pending] = useActionState(registrarAjuste.bind(null, notaId), undefined);
   const formRef = useRef<HTMLFormElement>(null);
 
+  // Solo depende de `state`: avisa una vez por corrección guardada aunque cambie onGuardado.
+  const alGuardar = useEffectEvent(() => {
+    toast.success("Corrección registrada");
+    formRef.current?.reset();
+    onGuardado?.();
+  });
   useEffect(() => {
-    if (state?.ok) {
-      toast.success("Corrección registrada");
-      formRef.current?.reset();
-    }
+    if (state?.ok) alGuardar();
   }, [state]);
 
   return (

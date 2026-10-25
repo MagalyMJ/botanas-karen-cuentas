@@ -6,6 +6,7 @@ import { formatoMoneda, importeLinea, totalLineas } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CampoNumero } from "./campo-numero";
+import { columnasDetalle, EncabezadoDetalle } from "./detalle-columnas";
 
 type Renglon = { key: number; descripcion: string; cantidad: string; precio: string };
 
@@ -65,58 +66,55 @@ export function DetalleNota({
   const total = totalLineas(conNumeros(renglones));
 
   return (
-    <fieldset className="grid gap-3">
+    <fieldset className="grid gap-2">
       <legend className="mb-2 text-sm font-medium">
         Detalle <span className="font-normal text-muted-foreground">(opcional)</span>
       </legend>
       <SugerenciasDescripcion id="descripciones-usadas" descripciones={descripciones} />
+      {renglones.length > 0 && <EncabezadoDetalle />}
       {renglones.map((x, i) => {
         const importe = conNumeros([x])[0];
         return (
-          <div key={x.key} className="grid gap-2 rounded-lg border p-3">
-            <div className="flex items-center gap-2">
-              <Input
-                name="lineaDescripcion"
-                aria-label={`Descripción del renglón ${i + 1}`}
-                placeholder="¿Qué fue? Ej. Cacahuate japonés 1 kg"
-                list="descripciones-usadas"
-                maxLength={200}
-                value={x.descripcion}
-                onChange={(e) => cambiar(x.key, "descripcion", e.target.value)}
-                className="h-11"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label={`Quitar renglón ${i + 1}`}
-                onClick={() => quitar(x.key)}
-              >
-                <XIcon />
-              </Button>
-            </div>
-            <div className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
-              <CampoNumero
-                decimales={3}
-                name="lineaCantidad"
-                aria-label={`Cantidad del renglón ${i + 1}`}
-                placeholder="Cantidad"
-                value={x.cantidad}
-                onChange={(e) => cambiar(x.key, "cantidad", e.target.value)}
-                className="h-11"
-              />
-              <CampoNumero
-                name="lineaPrecio"
-                aria-label={`Precio unitario del renglón ${i + 1}`}
-                placeholder="Precio c/u"
-                value={x.precio}
-                onChange={(e) => cambiar(x.key, "precio", e.target.value)}
-                className="h-11"
-              />
-              <span className="min-w-20 text-right text-sm font-medium tabular-nums">
-                {importe ? formatoMoneda(importeLinea(importe)) : "—"}
-              </span>
-            </div>
+          <div key={x.key} className={columnasDetalle}>
+            <CampoNumero
+              decimales={3}
+              name="lineaCantidad"
+              aria-label={`Cantidad del renglón ${i + 1}`}
+              value={x.cantidad}
+              onChange={(e) => cambiar(x.key, "cantidad", e.target.value)}
+              className="h-10 text-right"
+            />
+            <Input
+              name="lineaDescripcion"
+              aria-label={`Descripción del renglón ${i + 1}`}
+              placeholder="Ej. Cacahuate japonés 1 kg"
+              list="descripciones-usadas"
+              maxLength={200}
+              value={x.descripcion}
+              onChange={(e) => cambiar(x.key, "descripcion", e.target.value)}
+              className="h-10"
+            />
+            <CampoNumero
+              name="lineaPrecio"
+              aria-label={`Precio unitario del renglón ${i + 1}`}
+              placeholder="$0.00"
+              value={x.precio}
+              onChange={(e) => cambiar(x.key, "precio", e.target.value)}
+              className="h-10 text-right"
+            />
+            <span className="hidden text-right text-sm font-medium tabular-nums sm:block">
+              {importe ? formatoMoneda(importeLinea(importe)) : "—"}
+            </span>
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon"
+              aria-label={`Quitar renglón ${i + 1}`}
+              className="size-10"
+              onClick={() => quitar(x.key)}
+            >
+              <XIcon />
+            </Button>
           </div>
         );
       })}
@@ -125,8 +123,8 @@ export function DetalleNota({
           {e}
         </p>
       ))}
-      <div className="flex items-center justify-between gap-2">
-        <Button type="button" variant="outline" onClick={agregar}>
+      <div className="mt-1 flex items-center justify-between gap-2">
+        <Button type="button" variant="secondary" onClick={agregar}>
           <PlusIcon />
           {renglones.length === 0 ? "Agregar detalle" : "Otro renglón"}
         </Button>

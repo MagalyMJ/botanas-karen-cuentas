@@ -15,9 +15,10 @@ export function Balance({
   return (
     <span
       className={cn(
-        "tabular-nums",
-        valor > 0 && "text-emerald-700 dark:text-emerald-400",
-        valor < 0 && "text-amber-700 dark:text-amber-400",
+        "font-bold tabular-nums",
+        // A favor en pizarra (el color más fuerte de la paleta), en contra en terracota.
+        valor > 0 && "text-pizarra",
+        valor < 0 && "text-terracota",
         className,
       )}
     >

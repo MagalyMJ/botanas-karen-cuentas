@@ -23,8 +23,8 @@ export function TopNav() {
           key={href}
           href={href}
           className={cn(
-            "rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted",
-            isActive(pathname, href) && "bg-muted text-foreground",
+            "rounded-md px-3 py-1.5 text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white",
+            isActive(pathname, href) && "bg-white/15 text-white",
           )}
         >
           {label}
@@ -44,7 +44,7 @@ export function BottomNav() {
           href={href}
           className={cn(
             "flex flex-1 flex-col items-center gap-0.5 py-2 text-xs text-muted-foreground",
-            isActive(pathname, href) && "text-foreground",
+            isActive(pathname, href) && "text-pizarra",
           )}
         >
           <Icon className="size-5" />

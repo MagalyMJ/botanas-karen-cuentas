@@ -11,19 +11,19 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <>
-      <header className="sticky top-0 z-10 border-b bg-background/95 pt-[env(safe-area-inset-top)] backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-3xl items-center gap-4 px-4">
-          <span className="font-semibold">Cuentas</span>
+      <header className="sticky top-0 z-10 bg-pizarra pt-[env(safe-area-inset-top)] text-white">
+        <div className="mx-auto flex h-14 max-w-5xl items-center gap-4 px-4">
+          <span className="font-semibold text-arena">Cuentas</span>
           <TopNav />
           <form action={logout} className="ml-auto">
-            <Button variant="ghost" size="sm" type="submit">
+            <Button variant="ghost" size="sm" type="submit" className="text-white/80 hover:bg-white/10 hover:text-white">
               <LogOutIcon />
               Salir
             </Button>
           </form>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pt-4 pb-24 md:pb-8">{children}</main>
+      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-4 pb-24 md:pb-8">{children}</main>
       <BottomNav />
     </>
   );

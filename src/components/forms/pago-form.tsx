@@ -47,26 +47,28 @@ export function PagoForm({
 
   return (
     <form ref={formRef} action={action} className="grid gap-4">
-      <Field label="Monto del pago" htmlFor="montoPagado" errors={state?.fieldErrors?.montoPagado}>
-        <CampoNumero
-          id="montoPagado"
-          name="montoPagado"
-          required
-          placeholder={`Saldo: ${formatoMoneda(saldoPendiente)}`}
-          className="h-11 text-lg"
-        />
-      </Field>
-      <Field label="Fecha y hora" htmlFor="fechaPago" errors={state?.fieldErrors?.fechaPago}>
-        <Input
-          id="fechaPago"
-          name="fechaPago"
-          type="datetime-local"
-          value={fecha}
-          onChange={(e) => setFecha(e.target.value)}
-          required
-          className="h-11"
-        />
-      </Field>
+      <div className="grid gap-4 sm:grid-cols-2 sm:items-start">
+        <Field label="Monto del pago" htmlFor="montoPagado" errors={state?.fieldErrors?.montoPagado}>
+          <CampoNumero
+            id="montoPagado"
+            name="montoPagado"
+            required
+            placeholder={`Saldo: ${formatoMoneda(saldoPendiente)}`}
+            className="h-11 text-lg"
+          />
+        </Field>
+        <Field label="Fecha y hora" htmlFor="fechaPago" errors={state?.fieldErrors?.fechaPago}>
+          <Input
+            id="fechaPago"
+            name="fechaPago"
+            type="datetime-local"
+            value={fecha}
+            onChange={(e) => setFecha(e.target.value)}
+            required
+            className="h-11"
+          />
+        </Field>
+      </div>
       <Field label="Comentario (opcional)" htmlFor="comentario" errors={state?.fieldErrors?.comentario}>
         <Textarea id="comentario" name="comentario" rows={2} maxLength={500} />
       </Field>
