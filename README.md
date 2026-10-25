@@ -53,6 +53,16 @@ npm run dev
 | `npm run db:studio` | Explorador visual de la base de datos |
 | `npm run crear-usuario` | Crea/actualiza un usuario (Neon) |
 | `npm run db:local:reset` | Borra la base local de desarrollo |
+| `npm test` | Corre los tests (`npm run test:watch` los repite al guardar) |
+
+## Tests
+
+`npm test` corre los tests de `tests/` con [Vitest](https://vitest.dev). Cada test usa una base
+PGlite nueva en memoria con las migraciones reales de `drizzle/`; no se toca la base local ni Neon.
+La sesión y las funciones de Next (`revalidatePath`, `redirect`) se fingen en `tests/setup.ts`, así
+que las Server Actions y consultas se prueban tal cual, con el rol que elija cada test
+(`comoUsuario`). `esperarSaldosCuadrados()` comprueba que el saldo guardado de cada nota coincida con
+monto original + correcciones − pagos.
 
 ## Despliegue en Vercel
 
