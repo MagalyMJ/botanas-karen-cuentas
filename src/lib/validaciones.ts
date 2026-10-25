@@ -48,6 +48,22 @@ export const pagoSchema = z.object({
   comentario: textoOpcional.pipe(z.string().max(500).nullable()),
 });
 
+// Campo numérico obligatorio: "" es error (z.coerce lo convertiría en 0).
+const numero = (vacio: string) =>
+  z.string().trim().min(1, vacio).pipe(z.coerce.number({ error: "Ingresa un número válido" }));
+
+export const lineaSchema = z.object({
+  descripcion: z.string().trim().min(1, "Escribe qué fue").max(200, "Descripción demasiado larga"),
+  cantidad: numero("Escribe la cantidad")
+    .pipe(z.number().positive("La cantidad debe ser mayor a 0").max(99_999_999, "Cantidad demasiado grande"))
+    .transform((n) => Math.round(n * 1000) / 1000),
+  precioUnitario: numero("Escribe el precio")
+    .pipe(z.number().min(0, "El precio no puede ser negativo").max(9_999_999_999.99, "Precio demasiado grande"))
+    .transform((n) => Math.round(n * 100) / 100),
+});
+
+export type Linea = z.infer<typeof lineaSchema>;
+
 export type FormState = {
   error?: string;
   fieldErrors?: Record<string, string[] | undefined>;

@@ -56,3 +56,20 @@ export function textoResponsable(atendidoPor: string | null, registradoPor: stri
     ? `Atendió ${atendidoPor} · registró ${registradoPor}`
     : `Atendió y registró ${registradoPor}`;
 }
+
+/** Importe de una línea (cantidad × precio), redondeado a centavos. */
+export function importeLinea(l: { cantidad: number; precioUnitario: number }) {
+  return Math.round(l.cantidad * l.precioUnitario * 100) / 100;
+}
+
+/** Suma de importes en centavos enteros, para comparar contra el monto sin errores de redondeo. */
+export function totalLineas(lineas: { cantidad: number; precioUnitario: number }[]) {
+  return lineas.reduce((s, l) => s + Math.round(importeLinea(l) * 100), 0) / 100;
+}
+
+const cantidad = new Intl.NumberFormat("es-MX", { maximumFractionDigits: 3 });
+
+/** Cantidad sin ceros de más: 3, 1.5, 0.25. */
+export function formatoCantidad(n: number) {
+  return cantidad.format(n);
+}

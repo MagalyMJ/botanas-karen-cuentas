@@ -1,18 +1,37 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/auth";
 import { puedeEditar } from "@/lib/permisos";
-import { getEmpleados, getNota } from "@/lib/queries";
-import { ahoraLocal, formatoFecha, formatoMoneda, textoResponsable } from "@/lib/format";
+import { XIcon } from "lucide-react";
+import { getDescripcionesUsadas, getEmpleados, getNota } from "@/lib/queries";
+import { quitarLinea } from "@/lib/actions";
+import {
+  ahoraLocal,
+  formatoCantidad,
+  formatoFecha,
+  formatoMoneda,
+  importeLinea,
+  textoResponsable,
+  totalLineas,
+} from "@/lib/format";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NotaBadge } from "@/components/estado-badge";
 import { PageHeader } from "@/components/page-header";
 import { PagoForm } from "@/components/forms/pago-form";
+import { LineaForm } from "@/components/forms/linea-form";
 
 export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
-  const [nota, empleados, usuario] = await Promise.all([getNota(id), getEmpleados(), requireUser()]);
+  const [nota, empleados, descripciones, usuario] = await Promise.all([
+    getNota(id),
+    getEmpleados(),
+    getDescripcionesUsadas(),
+    requireUser(),
+  ]);
   if (!nota) notFound();
+  const editor = puedeEditar(usuario.rol);
+  const sumaDetalle = totalLineas(nota.lineas);
 
   const pagado = nota.montoOriginal - Math.max(nota.saldoPendiente, 0);
   const progreso = Math.min(100, Math.round((pagado / nota.montoOriginal) * 100));
@@ -51,7 +70,54 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
         </CardContent>
       </Card>
 
-      {nota.estado === "activo" && puedeEditar(usuario.rol) && (
+      {(nota.lineas.length > 0 || editor) && (
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Detalle</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {nota.lineas.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin detalle. Puedes agregarlo cuando quieras.</p>
+            ) : (
+              <div>
+                <ul className="divide-y">
+                  {nota.lineas.map((l) => (
+                    <li key={l.id} className="flex items-center gap-3 py-2">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm break-words">{l.descripcion}</p>
+                        <p className="text-xs text-muted-foreground tabular-nums">
+                          {formatoCantidad(l.cantidad)} × {formatoMoneda(l.precioUnitario)}
+                        </p>
+                      </div>
+                      <span className="text-sm font-medium tabular-nums">{formatoMoneda(importeLinea(l))}</span>
+                      {editor && (
+                        <form action={quitarLinea.bind(null, nota.id, l.id)}>
+                          <Button type="submit" variant="ghost" size="icon-sm" aria-label={`Quitar ${l.descripcion}`}>
+                            <XIcon />
+                          </Button>
+                        </form>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex justify-between border-t pt-2 text-sm">
+                  <span className="text-muted-foreground">Suma del detalle</span>
+                  <span className="font-medium tabular-nums">{formatoMoneda(sumaDetalle)}</span>
+                </div>
+                {sumaDetalle !== nota.montoOriginal && (
+                  <p role="status" className="mt-2 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400">
+                    El detalle suma {formatoMoneda(sumaDetalle)}, pero la nota es de{" "}
+                    {formatoMoneda(nota.montoOriginal)}.
+                  </p>
+                )}
+              </div>
+            )}
+            {editor && <LineaForm notaId={nota.id} descripciones={descripciones} />}
+          </CardContent>
+        </Card>
+      )}
+
+      {nota.estado === "activo" && editor && (
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>

@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/auth";
 import { puedeEditar } from "@/lib/permisos";
-import { getContacto, getEmpleados } from "@/lib/queries";
+import { getContacto, getDescripcionesUsadas, getEmpleados } from "@/lib/queries";
 import { ahoraLocal } from "@/lib/format";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageHeader } from "@/components/page-header";
@@ -12,9 +12,10 @@ export default async function NuevaNotaPage({
 }: PageProps<"/contactos/[id]/notas/nueva">) {
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
-  const [contacto, empleados, usuario] = await Promise.all([
+  const [contacto, empleados, descripciones, usuario] = await Promise.all([
     getContacto(id),
     getEmpleados(),
+    getDescripcionesUsadas(),
     requireUser(),
   ]);
   if (!contacto || !puedeEditar(usuario.rol)) notFound();
@@ -29,6 +30,7 @@ export default async function NuevaNotaPage({
             fechaHoy={ahoraLocal()}
             empleados={empleados}
             usuarioNombre={usuario.nombre}
+            descripciones={descripciones}
           />
         </CardContent>
       </Card>

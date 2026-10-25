@@ -76,7 +76,7 @@ async function sembrar(db: PgliteDatabase<typeof schema>) {
   const yo = { registradoPorId: usuario.id };
   const atendioLuis = { ...yo, atendidoPorId: empleado.id };
 
-  const [notaCliente, , , notaPagada] = await db
+  const [notaCliente, notaProveedor, , notaPagada] = await db
     .insert(schema.notas)
     .values([
       { contactoId: contacto.id, tipo: "por_cobrar", montoOriginal: 1200, saldoPendiente: 1000, fechaInicio: haceDias(12, 10, 30), ...atendioLuis },
@@ -85,6 +85,13 @@ async function sembrar(db: PgliteDatabase<typeof schema>) {
       { contactoId: contactoPagado.id, tipo: "por_cobrar", montoOriginal: 250, saldoPendiente: 0, estado: "pagado", fechaInicio: haceDias(20, 12, 0), ...yo },
     ])
     .returning({ id: schema.notas.id });
+
+  // Nota de Don Pepe con detalle que cuadra; la del proveedor, con detalle que no.
+  await db.insert(schema.notaLineas).values([
+    { notaId: notaCliente.id, descripcion: "Cacahuate japonés 1 kg", cantidad: 10, precioUnitario: 85, ...yo },
+    { notaId: notaCliente.id, descripcion: "Chicharrón de harina 500 g", cantidad: 14, precioUnitario: 25, ...yo },
+    { notaId: notaProveedor.id, descripcion: "Chile de árbol 1 kg", cantidad: 3, precioUnitario: 120, ...yo },
+  ]);
 
   await db.insert(schema.pagos).values([
     { notaId: notaCliente.id, montoPagado: 200, comentario: "Abono en efectivo", fechaPago: haceDias(5, 16, 20), ...atendioLuis },

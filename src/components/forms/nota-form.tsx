@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { crearNota } from "@/lib/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AtendioSelect, type Empleado } from "./atendio-select";
+import { DetalleNota } from "./detalle-nota";
 import { Field, FormError } from "./field";
 
 const opcionesTipo = [
@@ -17,13 +18,18 @@ export function NotaForm({
   fechaHoy,
   empleados,
   usuarioNombre,
+  descripciones,
 }: {
   contactoId: number;
   fechaHoy: string;
   empleados: Empleado[];
   usuarioNombre: string;
+  descripciones: string[];
 }) {
   const [state, action, pending] = useActionState(crearNota.bind(null, contactoId), undefined);
+  // El monto se llena con la suma del detalle hasta que alguien lo escribe a mano.
+  const [monto, setMonto] = useState("");
+  const [montoManual, setMontoManual] = useState(false);
   return (
     <form action={action} className="grid gap-4">
       <fieldset className="grid gap-2">
@@ -52,6 +58,13 @@ export function NotaForm({
           </p>
         ))}
       </fieldset>
+      <DetalleNota
+        descripciones={descripciones}
+        errores={state?.fieldErrors?.lineas}
+        onTotal={(total) => {
+          if (!montoManual) setMonto(total > 0 ? total.toFixed(2) : "");
+        }}
+      />
       <Field label="Monto" htmlFor="montoOriginal" errors={state?.fieldErrors?.montoOriginal}>
         <Input
           id="montoOriginal"
@@ -61,6 +74,11 @@ export function NotaForm({
           step="0.01"
           min="0.01"
           required
+          value={monto}
+          onChange={(e) => {
+            setMonto(e.target.value);
+            setMontoManual(e.target.value !== "");
+          }}
           className="h-11 text-lg"
         />
       </Field>

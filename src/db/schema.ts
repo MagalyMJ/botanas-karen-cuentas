@@ -103,6 +103,30 @@ export const pagos = pgTable(
   ],
 );
 
+// Detalle opcional de una nota (qué se vendió o compró). Es solo informativo: no cambia
+// el monto ni el saldo de la nota, y se puede agregar después de crearla.
+export const notaLineas = pgTable(
+  "nota_lineas",
+  {
+    id: serial("id").primaryKey(),
+    notaId: integer("nota_id")
+      .notNull()
+      .references(() => notas.id, { onDelete: "restrict" }),
+    descripcion: text("descripcion").notNull(),
+    cantidad: numeric("cantidad", { precision: 12, scale: 3, mode: "number" }).notNull(),
+    precioUnitario: numeric("precio_unitario", { precision: 12, scale: 2, mode: "number" }).notNull(),
+    registradoPorId: integer("registrado_por_id")
+      .notNull()
+      .references(() => usuarios.id, { onDelete: "restrict" }),
+    creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("nota_lineas_nota_idx").on(t.notaId),
+    check("nota_lineas_cantidad_positiva", sql`${t.cantidad} > 0`),
+    check("nota_lineas_precio_valido", sql`${t.precioUnitario} >= 0`),
+  ],
+);
+
 export type TipoContacto = (typeof tipoContacto.enumValues)[number];
 export type TipoNota = (typeof tipoNota.enumValues)[number];
 export type EstadoNota = (typeof estadoNota.enumValues)[number];
@@ -110,3 +134,4 @@ export type RolUsuario = (typeof rolUsuario.enumValues)[number];
 export type Contacto = typeof contactos.$inferSelect;
 export type Nota = typeof notas.$inferSelect;
 export type Pago = typeof pagos.$inferSelect;
+export type NotaLinea = typeof notaLineas.$inferSelect;

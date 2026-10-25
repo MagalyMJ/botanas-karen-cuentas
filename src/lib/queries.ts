@@ -2,7 +2,7 @@ import "server-only";
 import { and, desc, eq, gte, ilike, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { alias } from "drizzle-orm/pg-core";
-import { contactos, pagos, notas, usuarios, type TipoContacto } from "@/db/schema";
+import { contactos, notaLineas, pagos, notas, usuarios, type TipoContacto } from "@/db/schema";
 import { requireUser } from "@/auth";
 import { ZONA_HORARIA } from "@/lib/format";
 import { contactoVisible } from "@/lib/permisos";
@@ -149,25 +149,50 @@ export async function getNota(id: number) {
     .where(and(eq(notas.id, id), soloContacto === null ? undefined : eq(notas.contactoId, soloContacto)))
     .limit(1);
   if (!row) return null;
-  const pagosNota = await db
-    .select({
-      id: pagos.id,
-      montoPagado: pagos.montoPagado,
-      fechaPago: pagos.fechaPago,
-      comentario: pagos.comentario,
-      registradoPor: usuarios.nombre,
-      atendidoPor: atendio.nombre,
-    })
-    .from(pagos)
-    .innerJoin(usuarios, eq(pagos.registradoPorId, usuarios.id))
-    .leftJoin(atendio, eq(pagos.atendidoPorId, atendio.id))
-    .where(eq(pagos.notaId, id))
-    .orderBy(desc(pagos.fechaPago), desc(pagos.id));
+  const [pagosNota, lineas] = await Promise.all([
+    db
+      .select({
+        id: pagos.id,
+        montoPagado: pagos.montoPagado,
+        fechaPago: pagos.fechaPago,
+        comentario: pagos.comentario,
+        registradoPor: usuarios.nombre,
+        atendidoPor: atendio.nombre,
+      })
+      .from(pagos)
+      .innerJoin(usuarios, eq(pagos.registradoPorId, usuarios.id))
+      .leftJoin(atendio, eq(pagos.atendidoPorId, atendio.id))
+      .where(eq(pagos.notaId, id))
+      .orderBy(desc(pagos.fechaPago), desc(pagos.id)),
+    db
+      .select({
+        id: notaLineas.id,
+        descripcion: notaLineas.descripcion,
+        cantidad: notaLineas.cantidad,
+        precioUnitario: notaLineas.precioUnitario,
+      })
+      .from(notaLineas)
+      .where(eq(notaLineas.notaId, id))
+      .orderBy(notaLineas.id),
+  ]);
   return {
     ...row.nota,
     contacto: row.contacto,
     registradoPor: row.registradoPor,
     atendidoPor: row.atendidoPor,
     pagos: pagosNota,
+    lineas,
   };
+}
+
+/** Descripciones ya capturadas, las más recientes primero, para sugerir al escribir. */
+export async function getDescripcionesUsadas(limite = 200) {
+  if ((await alcance()) !== null) return [];
+  const rows = await db
+    .select({ descripcion: notaLineas.descripcion })
+    .from(notaLineas)
+    .groupBy(notaLineas.descripcion)
+    .orderBy(desc(sql`max(${notaLineas.id})`))
+    .limit(limite);
+  return rows.map((r) => r.descripcion);
 }
