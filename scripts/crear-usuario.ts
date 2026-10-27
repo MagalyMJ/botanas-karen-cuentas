@@ -5,7 +5,7 @@
  * Roles: administrador, editor, consulta, contacto.
  * El rol contacto necesita el id del contacto ligado (el número en /contactos/<id>).
  */
-import "dotenv/config";
+import { config } from "dotenv";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { neon } from "@neondatabase/serverless";
@@ -25,6 +25,10 @@ function esRol(valor: string): valor is RolUsuario {
   return (rolUsuario.enumValues as readonly string[]).includes(valor);
 }
 
+// Igual que drizzle.config.ts: .env.local (rama de `neon checkout`) y luego .env; lo que
+// ya esté en la terminal tiene prioridad (p. ej. DATABASE_URL="$(neon cs production) …").
+config({ path: [".env.local", ".env"], quiet: true });
+
 async function main() {
   const [email, nombre, password, rol, contactoArg] = process.argv.slice(2);
   if (!email || !nombre || !password || !rol) salir(USO);
@@ -41,7 +45,8 @@ async function main() {
     salir(`El rol ${rol} ve todo; no se liga a un contacto.`);
   }
 
-  const db = drizzle(neon(process.env.DATABASE_URL!));
+  if (!process.env.DATABASE_URL) salir("Falta DATABASE_URL (en .env.local, .env o la terminal).");
+  const db = drizzle(neon(process.env.DATABASE_URL));
 
   let contactoNombre = "";
   if (contactoId !== null) {

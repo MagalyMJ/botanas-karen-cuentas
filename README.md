@@ -24,23 +24,51 @@ npm run dev
 
 ## Configuración con Neon
 
-1. Crea una base de datos en [Neon](https://neon.tech) y copia la cadena de conexión.
-2. Copia `.env.example` a `.env.local` **y** a `.env` (drizzle-kit y los scripts leen `.env`) y llena:
-   - `DATABASE_URL`: cadena de conexión de Neon.
-   - `AUTH_SECRET`: genera uno con `npx auth secret` u `openssl rand -base64 32`.
-3. Instala dependencias y crea las tablas:
-   ```bash
-   npm install
-   npm run db:migrate
-   ```
-4. Crea un usuario autorizado (no hay registro público):
-   ```bash
-   npm run crear-usuario -- karen@ejemplo.com "Karen" "una-contraseña-segura" administrador
-   npm run crear-usuario -- pepe@ejemplo.com "Don Pepe" "otra-contraseña" contacto 5
-   ```
-   El rol `contacto` necesita el id del contacto ligado (el número en `/contactos/<id>`).
-   Ejecutarlo de nuevo con el mismo correo cambia la contraseña, el rol y el contacto ligado.
-5. `npm run dev` y abre http://localhost:3000.
+El proyecto está ligado a Neon con el [CLI de Neon](https://neon.com/docs/reference/neon-cli)
+(`neon.ts` y `.neon`). Hay dos ramas de la base:
+
+| rama | para qué | dónde se usa |
+| --- | --- | --- |
+| `production` | datos reales | la app desplegada (Vercel) |
+| `development` | pruebas en tu computadora | `npm run dev` (vía `.env.local`) |
+
+`neon checkout <rama>` escribe en `.env.local` la conexión de esa rama (`DATABASE_URL`,
+`DATABASE_URL_UNPOOLED`, `NEON_BRANCH`). `npm run db:migrate` y `npm run crear-usuario` leen
+`.env.local` y luego `.env`; una variable definida en la terminal tiene prioridad.
+
+Primera vez en una computadora nueva:
+
+```bash
+npm install
+npm i -g neon@latest && neon login
+neon checkout development      # escribe la conexión de development en .env.local
+npx auth secret                # agrega AUTH_SECRET a .env.local
+npm run dev                    # entra con demo@ejemplo.com / demo1234 (solo existe en development)
+```
+
+Cambios de esquema (después de editar `src/db/schema.ts` y correr `npm run db:generate`):
+
+```bash
+npm run db:migrate                                              # rama development
+DATABASE_URL_UNPOOLED="$(neon cs production)" npm run db:migrate # rama production
+```
+
+Usuarios (no hay registro público). Sin variable en la terminal se crean en `development`:
+
+```bash
+DATABASE_URL="$(neon cs production --pooled)" \
+  npm run crear-usuario -- karen@ejemplo.com "Karen" "una-contraseña-segura" administrador
+DATABASE_URL="$(neon cs production --pooled)" \
+  npm run crear-usuario -- pepe@ejemplo.com "Don Pepe" "otra-contraseña" contacto 5
+```
+
+El rol `contacto` necesita el id del contacto ligado (el número en `/contactos/<id>`).
+Ejecutarlo de nuevo con el mismo correo cambia la contraseña, el rol y el contacto ligado.
+
+Las ramas nuevas que no sean `development` expiran a los 7 días (política en `neon.ts`), útil
+para pruebas desechables: `neon branches create --name prueba --parent production`.
+
+Para volver a la base local sin Neon (PGlite), quita `DATABASE_URL` de `.env.local`.
 
 ## Scripts
 
@@ -51,7 +79,7 @@ npm run dev
 | `npm run db:generate` | Genera una migración tras cambiar `src/db/schema.ts` |
 | `npm run db:migrate` | Aplica migraciones pendientes |
 | `npm run db:studio` | Explorador visual de la base de datos |
-| `npm run crear-usuario` | Crea/actualiza un usuario (Neon) |
+| `npm run crear-usuario` | Crea/actualiza un usuario (rama de `.env.local`, o la de `DATABASE_URL` en la terminal) |
 | `npm run db:local:reset` | Borra la base local de desarrollo |
 | `npm test` | Corre los tests (`npm run test:watch` los repite al guardar) |
 
@@ -67,9 +95,11 @@ monto original + correcciones − pagos.
 ## Despliegue en Vercel
 
 1. Importa el repositorio en Vercel.
-2. Agrega `DATABASE_URL` y `AUTH_SECRET` en *Settings → Environment Variables*
-   (o conecta la integración de Neon, que define `DATABASE_URL`).
-3. Aplica las migraciones contra la base de producción con `npm run db:migrate` desde tu máquina.
+2. Agrega en *Settings → Environment Variables*:
+   - `DATABASE_URL`: la conexión con pooler de la rama production (`neon cs production --pooled`).
+   - `AUTH_SECRET`: uno nuevo para producción (`npx auth secret --raw` u `openssl rand -base64 32`).
+3. Antes de desplegar un cambio de esquema, aplica sus migraciones a production
+   (ver *Configuración con Neon*).
 
 ## Lógica de negocio
 
