@@ -106,6 +106,24 @@ export const pagos = pgTable(
   ],
 );
 
+// Observaciones internas de una nota (aclaraciones del negocio). Solo las ven los usuarios
+// del negocio, nunca el rol contacto, y no se editan ni se borran.
+export const observaciones = pgTable(
+  "observaciones",
+  {
+    id: serial("id").primaryKey(),
+    notaId: integer("nota_id")
+      .notNull()
+      .references(() => notas.id, { onDelete: "restrict" }),
+    texto: text("texto").notNull(),
+    registradoPorId: integer("registrado_por_id")
+      .notNull()
+      .references(() => usuarios.id, { onDelete: "restrict" }),
+    creadoEn: timestamp("creado_en", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("observaciones_nota_idx").on(t.notaId)],
+);
+
 // Correcciones de monto de una nota (p. ej. un precio mal capturado). Positivo = la nota
 // sube, negativo = baja. Se suman al saldo de la nota; la nota original no se modifica.
 export const ajustes = pgTable(
@@ -161,3 +179,4 @@ export type Nota = typeof notas.$inferSelect;
 export type Pago = typeof pagos.$inferSelect;
 export type NotaLinea = typeof notaLineas.$inferSelect;
 export type Ajuste = typeof ajustes.$inferSelect;
+export type Observacion = typeof observaciones.$inferSelect;

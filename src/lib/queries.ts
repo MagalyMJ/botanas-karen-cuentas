@@ -2,7 +2,16 @@ import "server-only";
 import { and, desc, eq, gte, ilike, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { alias } from "drizzle-orm/pg-core";
-import { ajustes, contactos, notaLineas, pagos, notas, usuarios, type TipoContacto } from "@/db/schema";
+import {
+  ajustes,
+  contactos,
+  notaLineas,
+  notas,
+  observaciones,
+  pagos,
+  usuarios,
+  type TipoContacto,
+} from "@/db/schema";
 import { requireUser } from "@/auth";
 import { ZONA_HORARIA } from "@/lib/format";
 import { contactoVisible } from "@/lib/permisos";
@@ -149,7 +158,7 @@ export async function getNota(id: number) {
     .where(and(eq(notas.id, id), soloContacto === null ? undefined : eq(notas.contactoId, soloContacto)))
     .limit(1);
   if (!row) return null;
-  const [pagosNota, lineas, ajustesNota] = await Promise.all([
+  const [pagosNota, lineas, ajustesNota, observacionesNota] = await Promise.all([
     db
       .select({
         id: pagos.id,
@@ -186,6 +195,20 @@ export async function getNota(id: number) {
       .innerJoin(usuarios, eq(ajustes.registradoPorId, usuarios.id))
       .where(eq(ajustes.notaId, id))
       .orderBy(desc(ajustes.creadoEn), desc(ajustes.id)),
+    // Internas: el rol contacto nunca las recibe, aunque la nota sea suya.
+    soloContacto !== null
+      ? []
+      : db
+          .select({
+            id: observaciones.id,
+            texto: observaciones.texto,
+            creadoEn: observaciones.creadoEn,
+            registradoPor: usuarios.nombre,
+          })
+          .from(observaciones)
+          .innerJoin(usuarios, eq(observaciones.registradoPorId, usuarios.id))
+          .where(eq(observaciones.notaId, id))
+          .orderBy(desc(observaciones.creadoEn), desc(observaciones.id)),
   ]);
   return {
     ...row.nota,
@@ -195,6 +218,7 @@ export async function getNota(id: number) {
     pagos: pagosNota,
     lineas,
     ajustes: ajustesNota,
+    observaciones: observacionesNota,
   };
 }
 

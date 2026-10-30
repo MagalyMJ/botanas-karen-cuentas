@@ -13,6 +13,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "crear-usuario": "tsx scripts/crear-usuario.ts",
+    "db:sembrar": "tsx scripts/sembrar-development.ts",
     "typecheck": "tsc --noEmit",
     "db:local:reset": "rm -rf .pglite",
     "dev:fresh": "rm -rf .pglite && next dev"

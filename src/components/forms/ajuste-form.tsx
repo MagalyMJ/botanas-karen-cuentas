@@ -3,10 +3,11 @@
 import { useActionState, useEffect, useEffectEvent, useRef } from "react";
 import { toast } from "sonner";
 import { registrarAjuste } from "@/lib/actions";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { BotonGuardar } from "./boton-guardar";
 import { CampoNumero } from "./campo-numero";
 import { Field, FormError } from "./field";
+import { useCerrarModal } from "./modal-formulario";
 
 const opcionesDireccion = [
   { value: "aumentar", label: "Sube", ayuda: "Faltó cobrar algo" },
@@ -14,15 +15,16 @@ const opcionesDireccion = [
 ] as const;
 
 /** Corrige el monto de una nota sin modificarla: registra la diferencia y su motivo. */
-export function AjusteForm({ notaId, onGuardado }: { notaId: number; onGuardado?: () => void }) {
+export function AjusteForm({ notaId }: { notaId: number }) {
   const [state, action, pending] = useActionState(registrarAjuste.bind(null, notaId), undefined);
   const formRef = useRef<HTMLFormElement>(null);
+  const cerrarModal = useCerrarModal();
 
-  // Solo depende de `state`: avisa una vez por corrección guardada aunque cambie onGuardado.
+  // Solo depende de `state`: avisa una vez por corrección guardada.
   const alGuardar = useEffectEvent(() => {
     toast.success("Corrección registrada");
     formRef.current?.reset();
-    onGuardado?.();
+    cerrarModal();
   });
   useEffect(() => {
     if (state?.ok) alGuardar();
@@ -75,9 +77,7 @@ export function AjusteForm({ notaId, onGuardado }: { notaId: number; onGuardado?
         />
       </Field>
       <FormError message={state?.error} />
-      <Button type="submit" size="lg" className="h-11" disabled={pending}>
-        {pending ? "Guardando…" : "Guardar corrección"}
-      </Button>
+      <BotonGuardar pending={pending}>Guardar corrección</BotonGuardar>
     </form>
   );
 }

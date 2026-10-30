@@ -65,13 +65,13 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2"
+                // En el celular, 44px para tocarla fácil con el pulgar.
+                className="absolute top-2 right-2 max-sm:top-1.5 max-sm:right-1.5 max-sm:size-11"
                 size="icon-sm"
               />
             }
           >
-            <XIcon
-            />
+            <XIcon className="max-sm:size-5" />
             <span className="sr-only">Cerrar</span>
           </DialogPrimitive.Close>
         )}
@@ -84,7 +84,8 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="dialog-header"
-      className={cn("flex flex-col gap-2", className)}
+      // max-sm:pr-10 deja libre la esquina del botón de cerrar (más grande en el celular).
+      className={cn("flex flex-col gap-2 max-sm:pr-10", className)}
       {...props}
     />
   )

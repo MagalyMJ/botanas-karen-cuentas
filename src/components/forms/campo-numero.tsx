@@ -10,10 +10,12 @@ import { limpiarNumero, patronNumero, regexEscribiendo } from "@/lib/numeros";
  * Abre el teclado numérico en el celular y solo deja escribir o pegar dígitos y un punto:
  * lo demás se rechaza completo en vez de "arreglarlo" (una coma pegada podría cambiar el monto).
  * Funciona controlado (value + onChange) o no controlado (defaultValue).
+ * Los campos de dinero (2 decimales, el valor por defecto) muestran "$0.00" como placeholder.
  */
 export function CampoNumero({
   decimales = 2,
   onChange,
+  placeholder = decimales === 2 ? "$0.00" : undefined,
   ...props
 }: Omit<React.ComponentProps<"input">, "type" | "inputMode" | "pattern" | "ref"> & { decimales?: number }) {
   // `beforeinput` se puede cancelar antes de que el texto llegue al campo (teclear, pegar,
@@ -38,6 +40,7 @@ export function CampoNumero({
   return (
     <Input
       {...props}
+      placeholder={placeholder}
       ref={bloquearInvalido}
       type="text"
       inputMode="decimal"

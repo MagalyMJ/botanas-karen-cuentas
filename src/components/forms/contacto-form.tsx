@@ -3,9 +3,9 @@
 import { useActionState } from "react";
 import { crearContacto } from "@/lib/actions";
 import type { TipoContacto } from "@/db/schema";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { tiposContacto } from "@/components/tipo-contacto";
+import { BotonGuardar } from "./boton-guardar";
 import { Field, FormError } from "./field";
 
 export function ContactoForm({ tipoInicial = "cliente" }: { tipoInicial?: TipoContacto }) {
@@ -45,9 +45,7 @@ export function ContactoForm({ tipoInicial = "cliente" }: { tipoInicial?: TipoCo
         <Input id="telefono" name="telefono" type="tel" inputMode="tel" className="h-11" />
       </Field>
       <FormError message={state?.error} />
-      <Button type="submit" size="lg" className="h-11" disabled={pending}>
-        {pending ? "Guardando…" : "Guardar contacto"}
-      </Button>
+      <BotonGuardar pending={pending}>Guardar contacto</BotonGuardar>
     </form>
   );
 }

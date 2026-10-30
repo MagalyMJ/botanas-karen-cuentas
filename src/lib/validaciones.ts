@@ -47,6 +47,8 @@ export const notaSchema = z.object({
   tipo: z.enum(["por_cobrar", "por_pagar"], { error: "Elige el tipo de nota" }),
   montoOriginal: monto,
   fechaInicio: fecha,
+  // Primera observación interna, opcional (las demás se agregan desde la nota).
+  observacion: textoOpcional.pipe(z.string().max(1000, "Máximo 1000 caracteres").nullable()),
 });
 
 export const pagoSchema = z.object({
@@ -72,6 +74,10 @@ export const ajusteSchema = z.object({
   direccion: z.enum(["aumentar", "disminuir"], { error: "Elige si el monto sube o baja" }),
   monto,
   motivo: z.string().trim().min(1, "Escribe el motivo de la corrección").max(500),
+});
+
+export const observacionSchema = z.object({
+  texto: z.string().trim().min(1, "Escribe la observación").max(1000, "Máximo 1000 caracteres"),
 });
 
 export type FormState = {

@@ -43,8 +43,13 @@ npm install
 npm i -g neon@latest && neon login
 neon checkout development      # escribe la conexión de development en .env.local
 npx auth secret                # agrega AUTH_SECRET a .env.local
+npm run db:sembrar             # llena development con datos de ejemplo
 npm run dev                    # entra con demo@ejemplo.com / demo1234 (solo existe en development)
 ```
+
+`npm run db:sembrar` **borra todos los datos de development** y vuelve a poner los de ejemplo
+(los mismos que la base local PGlite, en `src/db/semilla.ts`): úsalo cuando quieras empezar
+de cero. Solo corre si `.env.local` apunta a la rama development; con cualquier otra se niega.
 
 Cambios de esquema (después de editar `src/db/schema.ts` y correr `npm run db:generate`):
 
@@ -81,6 +86,7 @@ Para volver a la base local sin Neon (PGlite), quita `DATABASE_URL` de `.env.loc
 | `npm run db:studio` | Explorador visual de la base de datos |
 | `npm run crear-usuario` | Crea/actualiza un usuario (rama de `.env.local`, o la de `DATABASE_URL` en la terminal) |
 | `npm run db:local:reset` | Borra la base local de desarrollo |
+| `npm run db:sembrar` | Borra la rama development de Neon y la llena con datos de ejemplo |
 | `npm test` | Corre los tests (`npm run test:watch` los repite al guardar) |
 
 ## Tests

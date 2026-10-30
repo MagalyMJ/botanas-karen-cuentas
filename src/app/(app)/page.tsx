@@ -30,15 +30,15 @@ export default async function InicioPage() {
           <dl className="mt-3 grid grid-cols-3 gap-2 border-t pt-3 text-xs">
             <div>
               <dt className="text-muted-foreground">Me deben</dt>
-              <dd className="font-medium tabular-nums">{formatoMoneda(resumen.porCobrar)}</dd>
+              <dd className="text-sm font-medium tabular-nums">{formatoMoneda(resumen.porCobrar)}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Debo</dt>
-              <dd className="font-medium tabular-nums">{formatoMoneda(resumen.porPagar)}</dd>
+              <dd className="text-sm font-medium tabular-nums">{formatoMoneda(resumen.porPagar)}</dd>
             </div>
             <div>
               <dt className="text-muted-foreground">Cobrado este mes</dt>
-              <dd className="font-medium tabular-nums">{formatoMoneda(resumen.cobradoMes)}</dd>
+              <dd className="text-sm font-medium tabular-nums">{formatoMoneda(resumen.cobradoMes)}</dd>
             </div>
           </dl>
         </CardContent>

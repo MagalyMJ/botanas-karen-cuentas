@@ -8,9 +8,12 @@ import { Input } from "@/components/ui/input";
 import { CampoNumero } from "./campo-numero";
 import { columnasDetalle, EncabezadoDetalle } from "./detalle-columnas";
 
-type Renglon = { key: number; descripcion: string; cantidad: string; precio: string };
+// `id` es el renglón ya guardado (al editar); null = renglón nuevo.
+type Renglon = { key: number; id: number | null; descripcion: string; cantidad: string; precio: string };
 
-const nuevoRenglon = (key: number): Renglon => ({ key, descripcion: "", cantidad: "1", precio: "" });
+export type LineaGuardada = { id: number; descripcion: string; cantidad: number; precioUnitario: number };
+
+const nuevoRenglon = (key: number): Renglon => ({ key, id: null, descripcion: "", cantidad: "1", precio: "" });
 
 function numero(valor: string) {
   if (valor.trim() === "") return null;
@@ -39,23 +42,37 @@ export function SugerenciasDescripcion({ id, descripciones }: { id: string; desc
 }
 
 /**
- * Detalle opcional al crear una nota. Envía los campos repetidos lineaDescripcion,
- * lineaCantidad y lineaPrecio (uno por renglón) y avisa el total para proponer el monto.
+ * Editor de renglones del detalle: al crear una nota (vacío, opcional) y al editar el detalle
+ * de una nota (`inicial`). Envía los campos repetidos lineaId, lineaDescripcion, lineaCantidad
+ * y lineaPrecio (uno por renglón) y avisa el total, p. ej. para proponer el monto.
  */
 export function DetalleNota({
   descripciones,
   errores,
   onTotal,
+  inicial = [],
+  leyenda = true,
 }: {
   descripciones: string[];
   errores?: string[];
-  onTotal: (total: number) => void;
+  onTotal?: (total: number) => void;
+  inicial?: LineaGuardada[];
+  /** Muestra "Detalle (opcional)" arriba; en un modal ya titulado no hace falta. */
+  leyenda?: boolean;
 }) {
-  const [renglones, setRenglones] = useState<Renglon[]>([]);
+  const [renglones, setRenglones] = useState<Renglon[]>(() =>
+    inicial.map((l, i) => ({
+      key: i + 1,
+      id: l.id,
+      descripcion: l.descripcion,
+      cantidad: String(l.cantidad),
+      precio: l.precioUnitario.toFixed(2),
+    })),
+  );
 
   function actualizar(siguientes: Renglon[]) {
     setRenglones(siguientes);
-    onTotal(totalLineas(conNumeros(siguientes)));
+    onTotal?.(totalLineas(conNumeros(siguientes)));
   }
 
   const cambiar = (key: number, campo: keyof Omit<Renglon, "key">, valor: string) =>
@@ -67,15 +84,18 @@ export function DetalleNota({
 
   return (
     <fieldset className="grid gap-2">
-      <legend className="mb-2 text-sm font-medium">
-        Detalle <span className="font-normal text-muted-foreground">(opcional)</span>
-      </legend>
+      {leyenda && (
+        <legend className="mb-2 text-sm font-medium">
+          Detalle <span className="font-normal text-muted-foreground">(opcional)</span>
+        </legend>
+      )}
       <SugerenciasDescripcion id="descripciones-usadas" descripciones={descripciones} />
       {renglones.length > 0 && <EncabezadoDetalle />}
       {renglones.map((x, i) => {
         const importe = conNumeros([x])[0];
         return (
           <div key={x.key} className={columnasDetalle}>
+            <input type="hidden" name="lineaId" value={x.id ?? ""} />
             <CampoNumero
               decimales={3}
               name="lineaCantidad"
@@ -97,7 +117,6 @@ export function DetalleNota({
             <CampoNumero
               name="lineaPrecio"
               aria-label={`Precio unitario del renglón ${i + 1}`}
-              placeholder="$0.00"
               value={x.precio}
               onChange={(e) => cambiar(x.key, "precio", e.target.value)}
               className="h-10 text-right"
@@ -126,7 +145,7 @@ export function DetalleNota({
       <div className="mt-1 flex items-center justify-between gap-2">
         <Button type="button" variant="secondary" onClick={agregar}>
           <PlusIcon />
-          {renglones.length === 0 ? "Agregar detalle" : "Otro renglón"}
+          {renglones.length === 0 ? (leyenda ? "Agregar detalle" : "Agregar") : "Nuevo"}
         </Button>
         {renglones.length > 0 && (
           <span className="text-sm text-muted-foreground">

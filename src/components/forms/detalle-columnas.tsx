@@ -8,10 +8,6 @@ import { cn } from "@/lib/utils";
 export const columnasDetalle =
   "grid grid-cols-[3.5rem_minmax(0,1fr)_5.5rem_2.5rem] items-center gap-2 sm:grid-cols-[4.5rem_minmax(0,1fr)_6.5rem_6rem_2.5rem]";
 
-/** Igual, sin la columna de importe: para agregar un renglón (cantidad · descripción · precio · +). */
-export const columnasAgregarRenglon =
-  "grid grid-cols-[3.5rem_minmax(0,1fr)_5.5rem_2.5rem] items-center gap-2 sm:grid-cols-[4.5rem_minmax(0,1fr)_6.5rem_2.5rem]";
-
 export function EncabezadoDetalle({ className }: { className?: string }) {
   return (
     <div aria-hidden className={cn(columnasDetalle, "text-xs text-muted-foreground", className)}>

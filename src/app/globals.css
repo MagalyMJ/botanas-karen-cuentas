@@ -101,6 +101,23 @@
   --sidebar-ring: oklch(0.708 0 0);
 }
 
+/*
+ * En el celular (< 40rem, el breakpoint sm) todos los textos van 2px más grandes, para leerse
+ * mejor. Solo cambian los tamaños de letra de Tailwind (text-xs … text-3xl); espacios,
+ * botones y campos no.
+ */
+@media (width < 40rem) {
+  :root {
+    --text-xs: calc(0.75rem + 2px);
+    --text-sm: calc(0.875rem + 2px);
+    --text-base: calc(1rem + 2px);
+    --text-lg: calc(1.125rem + 2px);
+    --text-xl: calc(1.25rem + 2px);
+    --text-2xl: calc(1.5rem + 2px);
+    --text-3xl: calc(1.875rem + 2px);
+  }
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);

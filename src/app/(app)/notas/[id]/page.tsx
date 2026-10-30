@@ -1,11 +1,9 @@
 import { notFound } from "next/navigation";
 import { requireUser } from "@/auth";
 import { puedeEditar } from "@/lib/permisos";
-import { XIcon } from "lucide-react";
+import { PencilIcon, PlusIcon } from "lucide-react";
 import { getDescripcionesUsadas, getEmpleados, getNota } from "@/lib/queries";
-import { quitarLinea } from "@/lib/actions";
 import {
-  ahoraLocal,
   formatoCantidad,
   formatoFecha,
   formatoMoneda,
@@ -14,13 +12,14 @@ import {
   textoResponsable,
   totalLineas,
 } from "@/lib/format";
-import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NotaBadge } from "@/components/estado-badge";
 import { PageHeader } from "@/components/page-header";
 import { PagoForm } from "@/components/forms/pago-form";
-import { LineaForm } from "@/components/forms/linea-form";
-import { CorregirMonto } from "@/components/forms/corregir-monto";
+import { DetalleForm } from "@/components/forms/detalle-form";
+import { AjusteForm } from "@/components/forms/ajuste-form";
+import { ModalFormulario } from "@/components/forms/modal-formulario";
+import { ObservacionForm } from "@/components/forms/observacion-form";
 
 /** "+$50.00" o "−$30.00". */
 function conSigno(monto: number) {
@@ -38,6 +37,7 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
   ]);
   if (!nota) notFound();
   const editor = puedeEditar(usuario.rol);
+  const registrarTexto = nota.tipo === "por_cobrar" ? "Registrar cobro" : "Registrar pago";
   const sumaDetalle = totalLineas(nota.lineas);
 
   const monto = montoVigente(nota);
@@ -94,6 +94,23 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
             <Card>
               <CardHeader>
                 <CardTitle>Detalle</CardTitle>
+                {editor && (
+                  <CardAction className="self-center">
+                    <ModalFormulario
+                      boton={<><PencilIcon />Editar</>}
+                      titulo="Editar detalle"
+                      descripcion="Cambia, quita o agrega renglones. El detalle no cambia el monto ni el saldo."
+                      ancho="amplio"
+                    >
+                      <DetalleForm
+                        notaId={nota.id}
+                        lineas={nota.lineas}
+                        monto={monto}
+                        descripciones={descripciones}
+                      />
+                    </ModalFormulario>
+                  </CardAction>
+                )}
               </CardHeader>
               <CardContent className="grid gap-4">
                 {nota.lineas.length === 0 ? (
@@ -110,13 +127,6 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
                             </p>
                           </div>
                           <span className="text-sm font-medium tabular-nums">{formatoMoneda(importeLinea(l))}</span>
-                          {editor && (
-                            <form action={quitarLinea.bind(null, nota.id, l.id)}>
-                              <Button type="submit" variant="secondary" size="icon-sm" aria-label={`Quitar ${l.descripcion}`}>
-                                <XIcon />
-                              </Button>
-                            </form>
-                          )}
                         </li>
                       ))}
                     </ul>
@@ -132,26 +142,6 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
                     )}
                   </div>
                 )}
-                {editor && <LineaForm notaId={nota.id} descripciones={descripciones} />}
-              </CardContent>
-            </Card>
-          )}
-
-          {nota.estado === "activo" && editor && (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {nota.tipo === "por_cobrar" ? "Registrar cobro" : "Registrar pago"}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <PagoForm
-                  notaId={nota.id}
-                  saldoPendiente={nota.saldoPendiente}
-                  fechaHoy={ahoraLocal()}
-                  empleados={empleados}
-                  usuarioNombre={usuario.nombre}
-                />
               </CardContent>
             </Card>
           )}
@@ -159,6 +149,21 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
           <Card>
             <CardHeader>
               <CardTitle>Historial de pagos</CardTitle>
+              {nota.estado === "activo" && editor && (
+                <CardAction className="self-center">
+                  <ModalFormulario
+                    boton={<><PlusIcon />{registrarTexto}</>}
+                    titulo={registrarTexto}
+                    descripcion={`Saldo pendiente: ${formatoMoneda(nota.saldoPendiente)}`}
+                  >
+                    <PagoForm
+                      notaId={nota.id}
+                      empleados={empleados}
+                      usuarioNombre={usuario.nombre}
+                    />
+                  </ModalFormulario>
+                </CardAction>
+              )}
             </CardHeader>
             <CardContent>
               {nota.pagos.length === 0 ? (
@@ -182,13 +187,55 @@ export default async function NotaPage({ params }: PageProps<"/notas/[id]">) {
             </CardContent>
           </Card>
 
+          {/* Internas: getNota no las manda al rol contacto, así que para él no aparece. */}
+          {(nota.observaciones.length > 0 || editor) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Observaciones</CardTitle>
+                {editor && (
+                  <CardAction className="self-center">
+                    <ModalFormulario
+                      boton={<><PlusIcon />Agregar observación</>}
+                      titulo="Agregar observación"
+                      descripcion="Solo la ven ustedes; después no se puede editar ni borrar."
+                    >
+                      <ObservacionForm notaId={nota.id} />
+                    </ModalFormulario>
+                  </CardAction>
+                )}
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                {nota.observaciones.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sin observaciones.</p>
+                ) : (
+                  <ul className="divide-y">
+                    {nota.observaciones.map((o) => (
+                      <li key={o.id} className="py-3">
+                        <p className="text-sm break-words whitespace-pre-line">{o.texto}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatoFecha(o.creadoEn)} · {o.registradoPor}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {(nota.ajustes.length > 0 || editor) && (
             <Card>
               <CardHeader>
                 <CardTitle>Correcciones</CardTitle>
                 {editor && (
                   <CardAction className="self-center">
-                    <CorregirMonto notaId={nota.id} />
+                    <ModalFormulario
+                      boton={<><PencilIcon />Corregir monto</>}
+                      titulo="Corregir monto"
+                      descripcion="La nota original se conserva: se registra la diferencia y su motivo."
+                    >
+                      <AjusteForm notaId={nota.id} />
+                    </ModalFormulario>
                   </CardAction>
                 )}
               </CardHeader>

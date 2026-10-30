@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
-import { agregarLinea, crearNota, quitarLinea } from "@/lib/actions";
-import { notaLineas, notas } from "@/db/schema";
+import { crearNota, guardarDetalle } from "@/lib/actions";
+import { notaLineas, notas, observaciones } from "@/db/schema";
 import { comoUsuario, entorno, formulario, leerNota, Redireccion, sembrar } from "./entorno";
 
 const nota = (extra: Record<string, string | string[]> = {}) =>
@@ -35,6 +35,17 @@ describe("crearNota", () => {
       registradoPorId: usuarios.editor,
     });
     expect(await lineasDe(id)).toHaveLength(0);
+  });
+
+  it("guarda la observación opcional junto con la nota", async () => {
+    const { usuarios, contactos } = await sembrar();
+    comoUsuario(usuarios.editor);
+
+    const conObservacion = await crearYObtenerId(contactos.donPepe.id, nota({ observacion: "  Entregar el lunes  " }));
+    const sinObservacion = await crearYObtenerId(contactos.donPepe.id, nota({ observacion: "   " }));
+    const guardadas = await entorno.db.select().from(observaciones);
+    expect(guardadas).toMatchObject([{ notaId: conObservacion, texto: "Entregar el lunes", registradoPorId: usuarios.editor }]);
+    expect(guardadas.some((o) => o.notaId === sinObservacion)).toBe(false);
   });
 
   it("guarda el detalle junto con la nota e ignora renglones vacíos", async () => {
@@ -71,29 +82,73 @@ describe("crearNota", () => {
   });
 });
 
-describe("detalle después de crear la nota", () => {
-  it("agrega y quita renglones sin cambiar el monto ni el saldo", async () => {
+describe("editar el detalle de una nota", () => {
+  /** El formulario del modal "Editar": un renglón por posición; id "" = renglón nuevo. */
+  const detalle = (renglones: { id?: number; descripcion: string; cantidad: string; precio: string }[]) =>
+    formulario({
+      lineaId: renglones.map((r) => (r.id ? String(r.id) : "")),
+      lineaDescripcion: renglones.map((r) => r.descripcion),
+      lineaCantidad: renglones.map((r) => r.cantidad),
+      lineaPrecio: renglones.map((r) => r.precio),
+    });
+
+  it("agrega, cambia y quita renglones a la vez, sin tocar el monto ni el saldo", async () => {
     const { usuarios, notas } = await sembrar();
     comoUsuario(usuarios.editor);
     const id = notas.donPepe.id;
 
-    const fd = formulario({ descripcion: "Cacahuate", cantidad: "3", precioUnitario: "25" });
-    expect(await agregarLinea(id, undefined, fd)).toEqual({ ok: true });
-    const [linea] = await lineasDe(id);
-    expect(linea).toMatchObject({ descripcion: "Cacahuate", cantidad: 3, precioUnitario: 25 });
-    expect(await leerNota(id)).toMatchObject({ montoOriginal: 1000, saldoPendiente: 1000 });
+    expect(
+      await guardarDetalle(id, undefined, detalle([
+        { descripcion: "Cacahuate", cantidad: "3", precio: "25" },
+        { descripcion: "Papas", cantidad: "1", precio: "10" },
+      ])),
+    ).toEqual({ ok: true });
+    const [cacahuate, papas] = await lineasDe(id);
 
-    await quitarLinea(id, linea.id);
-    expect(await lineasDe(id)).toHaveLength(0);
+    // Cambia el precio del cacahuate, quita las papas y agrega chicharrón.
+    expect(
+      await guardarDetalle(id, undefined, detalle([
+        { id: cacahuate.id, descripcion: "Cacahuate japonés", cantidad: "3", precio: "30" },
+        { descripcion: "Chicharrón", cantidad: "2", precio: "15" },
+      ])),
+    ).toEqual({ ok: true });
+
+    const despues = await lineasDe(id);
+    expect(despues).toMatchObject([
+      { id: cacahuate.id, descripcion: "Cacahuate japonés", cantidad: 3, precioUnitario: 30 },
+      { descripcion: "Chicharrón", cantidad: 2, precioUnitario: 15, registradoPorId: usuarios.editor },
+    ]);
+    expect(despues.some((l) => l.id === papas.id)).toBe(false);
+    expect(await leerNota(id)).toMatchObject({ montoOriginal: 1000, saldoPendiente: 1000 });
   });
 
-  it("no quita un renglón si no pertenece a la nota indicada", async () => {
+  it("guardar sin renglones deja la nota sin detalle", async () => {
     const { usuarios, notas } = await sembrar();
     comoUsuario(usuarios.editor);
-    await agregarLinea(notas.donPepe.id, undefined, formulario({ descripcion: "X", cantidad: "1", precioUnitario: "1" }));
-    const [linea] = await lineasDe(notas.donPepe.id);
+    await guardarDetalle(notas.donPepe.id, undefined, detalle([{ descripcion: "X", cantidad: "1", precio: "1" }]));
 
-    await quitarLinea(notas.proveedor.id, linea.id);
-    expect(await lineasDe(notas.donPepe.id)).toHaveLength(1);
+    expect(await guardarDetalle(notas.donPepe.id, undefined, formulario({}))).toEqual({ ok: true });
+    expect(await lineasDe(notas.donPepe.id)).toHaveLength(0);
+  });
+
+  it("no toca renglones de otra nota aunque se manden sus ids", async () => {
+    const { usuarios, notas } = await sembrar();
+    comoUsuario(usuarios.editor);
+    await guardarDetalle(notas.proveedor.id, undefined, detalle([{ descripcion: "Chile", cantidad: "1", precio: "100" }]));
+    const [ajeno] = await lineasDe(notas.proveedor.id);
+
+    await guardarDetalle(notas.donPepe.id, undefined, detalle([{ id: ajeno.id, descripcion: "Robado", cantidad: "1", precio: "1" }]));
+    expect(await lineasDe(notas.proveedor.id)).toMatchObject([{ id: ajeno.id, descripcion: "Chile", precioUnitario: 100 }]);
+  });
+
+  it("si un renglón es inválido no cambia nada", async () => {
+    const { usuarios, notas } = await sembrar();
+    comoUsuario(usuarios.editor);
+    await guardarDetalle(notas.donPepe.id, undefined, detalle([{ descripcion: "Cacahuate", cantidad: "3", precio: "25" }]));
+    const [cacahuate] = await lineasDe(notas.donPepe.id);
+
+    const r = await guardarDetalle(notas.donPepe.id, undefined, detalle([{ id: cacahuate.id, descripcion: "Cacahuate", cantidad: "3", precio: "" }]));
+    expect(r?.fieldErrors?.lineas).toEqual(["Renglón 1: Escribe el precio"]);
+    expect(await lineasDe(notas.donPepe.id)).toMatchObject([{ precioUnitario: 25 }]);
   });
 });

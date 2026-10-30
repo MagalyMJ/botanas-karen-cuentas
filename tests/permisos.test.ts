@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { eq } from "drizzle-orm";
 import {
-  agregarLinea,
+  agregarObservacion,
   crearContacto,
   crearNota,
-  quitarLinea,
+  guardarDetalle,
   registrarAjuste,
   registrarPago,
 } from "@/lib/actions";
@@ -17,7 +17,7 @@ import {
   getPagosRecientes,
   getResumen,
 } from "@/lib/queries";
-import { ajustes, contactos, notaLineas, notas, pagos, usuarios } from "@/db/schema";
+import { ajustes, contactos, notaLineas, notas, observaciones, pagos, usuarios } from "@/db/schema";
 import { comoUsuario, entorno, formulario, Redireccion, sembrar } from "./entorno";
 
 const fecha = "2026-10-24T12:00";
@@ -31,16 +31,25 @@ function accionesDeEscritura(datos: Awaited<ReturnType<typeof sembrar>>) {
       crearNota(datos.contactos.donPepe.id, undefined, formulario({ tipo: "por_cobrar", montoOriginal: "10", fechaInicio: fecha })),
     registrarPago: () => registrarPago(nota, undefined, formulario({ montoPagado: "10", fechaPago: fecha })),
     registrarAjuste: () => registrarAjuste(nota, undefined, formulario({ direccion: "disminuir", monto: "10", motivo: "x" })),
-    agregarLinea: () => agregarLinea(nota, undefined, formulario({ descripcion: "x", cantidad: "1", precioUnitario: "1" })),
-    quitarLinea: () => quitarLinea(nota, 1),
+    guardarDetalle: () =>
+      guardarDetalle(nota, undefined, formulario({ lineaId: "", lineaDescripcion: "x", lineaCantidad: "1", lineaPrecio: "1" })),
+    agregarObservacion: () => agregarObservacion(nota, undefined, formulario({ texto: "x" })),
   };
 }
 
 async function contarFilas() {
   const db = entorno.db;
-  const n = async (t: typeof contactos | typeof notas | typeof pagos | typeof ajustes | typeof notaLineas) =>
-    (await db.select().from(t)).length;
-  return { contactos: await n(contactos), notas: await n(notas), pagos: await n(pagos), ajustes: await n(ajustes), lineas: await n(notaLineas) };
+  const n = async (
+    t: typeof contactos | typeof notas | typeof pagos | typeof ajustes | typeof notaLineas | typeof observaciones,
+  ) => (await db.select().from(t)).length;
+  return {
+    contactos: await n(contactos),
+    notas: await n(notas),
+    pagos: await n(pagos),
+    ajustes: await n(ajustes),
+    lineas: await n(notaLineas),
+    observaciones: await n(observaciones),
+  };
 }
 
 describe("quién puede modificar datos", () => {
@@ -73,17 +82,17 @@ describe("quién puede modificar datos", () => {
         await accion().catch((e) => expect(e, nombre).toBeInstanceOf(Redireccion));
       }
       const despues = await contarFilas();
-      expect(despues).toMatchObject({ contactos: 4, notas: 3, pagos: 1, ajustes: 1 });
+      expect(despues).toMatchObject({ contactos: 4, notas: 3, pagos: 1, ajustes: 1, observaciones: 1 });
     });
   }
 
   it("un cambio de rol aplica de inmediato, sin volver a iniciar sesión", async () => {
     const datos = await sembrar();
     comoUsuario(datos.usuarios.editor);
-    await accionesDeEscritura(datos).agregarLinea();
+    await accionesDeEscritura(datos).guardarDetalle();
 
     await entorno.db.update(usuarios).set({ rol: "consulta" }).where(eq(usuarios.id, datos.usuarios.editor));
-    await expect(accionesDeEscritura(datos).agregarLinea()).rejects.toThrow("No tienes permiso");
+    await expect(accionesDeEscritura(datos).guardarDetalle()).rejects.toThrow("No tienes permiso");
   });
 });
 

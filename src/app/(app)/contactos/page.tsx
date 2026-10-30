@@ -4,12 +4,13 @@ import { requireUser } from "@/auth";
 import { getContactos } from "@/lib/queries";
 import { puedeEditar } from "@/lib/permisos";
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/page-header";
 import { Balance, descripcionBalance } from "@/components/balance";
 import { esTipoContacto, TipoContactoBadge, tiposContacto } from "@/components/tipo-contacto";
+import { ContactoForm } from "@/components/forms/contacto-form";
+import { ModalFormulario } from "@/components/forms/modal-formulario";
 
 export default async function ContactosPage({ searchParams }: PageProps<"/contactos">) {
   const params = await searchParams;
@@ -32,10 +33,9 @@ export default async function ContactosPage({ searchParams }: PageProps<"/contac
         title="Contactos"
         action={
           puedeEditar(usuario.rol) && (
-            <Link href={tipo ? `/contactos/nuevo?tipo=${tipo}` : "/contactos/nuevo"} className={buttonVariants()}>
-              <PlusIcon />
-              Nuevo
-            </Link>
+            <ModalFormulario boton={<><PlusIcon />Nuevo</>} titulo="Nuevo contacto">
+              <ContactoForm tipoInicial={tipo} />
+            </ModalFormulario>
           )
         }
       />
@@ -56,7 +56,7 @@ export default async function ContactosPage({ searchParams }: PageProps<"/contac
             key={f.label}
             href={hrefFiltro(f.value)}
             className={cn(
-              "shrink-0 rounded-full border px-3 py-1.5 text-sm",
+              "shrink-0 rounded-full border px-3 py-1.5 text-sm max-sm:py-2",
               tipo === f.value ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted",
             )}
           >
@@ -79,18 +79,21 @@ export default async function ContactosPage({ searchParams }: PageProps<"/contac
                     href={`/contactos/${c.id}`}
                     className="flex items-center gap-3 px-4 py-3 hover:bg-muted/50"
                   >
+                    {/* En el celular la etiqueta de tipo baja a una tercera fila, para dejarle
+                        espacio al nombre y al saldo; desde sm va junto al nombre. */}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="truncate font-medium">{c.nombre}</p>
-                        {!tipo && <TipoContactoBadge tipo={c.tipo} />}
+                        {!tipo && <TipoContactoBadge tipo={c.tipo} className="max-sm:hidden" />}
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="truncate text-xs text-muted-foreground">
                         {c.notasActivas === 0
                           ? "Sin notas activas"
                           : `${c.notasActivas} nota${c.notasActivas > 1 ? "s" : ""} activa${c.notasActivas > 1 ? "s" : ""} · ${descripcionBalance(c.balance)}`}
                       </p>
+                      {!tipo && <TipoContactoBadge tipo={c.tipo} className="mt-1 sm:hidden" />}
                     </div>
-                    {c.balance !== 0 && <Balance valor={c.balance} />}
+                    {c.balance !== 0 && <Balance valor={c.balance} className="shrink-0 whitespace-nowrap max-sm:text-lg" />}
                     <ChevronRightIcon className="size-4 text-muted-foreground" />
                   </Link>
                 </li>
